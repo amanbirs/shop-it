@@ -17,11 +17,25 @@ Linear is the benchmark for "tool that feels like it was made by people who care
 - **Status as color.** Linear uses a small colored circle for issue status. Instantly scannable. We'll use similar visual markers for extraction status (pending/processing/completed/failed) and product status (shortlisted/purchased).
 - **Monochromatic UI with selective color.** The interface is mostly grayscale. Color is used sparingly and intentionally — to highlight status, actions, or important state. This makes colored elements pop.
 - **Sidebar navigation.** Clean sidebar with workspace/team hierarchy. Collapsible on mobile. We'll adapt this for lists navigation.
+- **8px spacing scale.** Linear uses a simple 8px spatial rhythm for all spacing. Consistent, predictable, easy to maintain.
+- **"Be gentle."** Users should see and understand what's presented. Everything should feel comfortable, natural, expected. No surprises.
+
+**Linear's design system ("Orbiter"):**
+- Built on **Radix Primitives** (same foundation as shadcn/ui — validates our choice)
+- No traditional grid system — modular components each designed for their content
+- HSL colors being migrated to **OKLCH** (Tailwind v4 also supports this)
+- Custom themes via base UI + accent colors with adjustable contrast
+- Default themes moved from cool blue hue to warmer grey — less saturated but crisp
 
 **Resources:**
-- [Linear's design approach](https://linear.app/readme) — their README explains their design philosophy
-- [Building Linear](https://linear.app/blog) — engineering blog with posts on animation, performance, and design decisions
-- [Karri Saarinen (Linear CEO) on design](https://www.youtube.com/results?search_query=karri+saarinen+linear+design) — talks about why craft matters in dev tools
+- [How We Redesigned the Linear UI](https://linear.app/now/how-we-redesigned-the-linear-ui) — deep dive into their latest UI overhaul
+- [A Calmer Interface for a Product in Motion](https://linear.app/now/behind-the-latest-design-refresh) — design refresh philosophy
+- [Linear Method — Practices for Building](https://linear.app/method) — their opinionated approach to software
+- [Craft — Linear](https://linear.app/now/craft) — why craft matters
+- [The Linear Method: Opinionated Software — Figma Blog](https://www.figma.com/blog/the-linear-method-opinionated-software/)
+- [Linear Case Study — Radix Primitives](https://www.radix-ui.com/primitives/case-studies/linear) — how they use Radix
+- [The Elegant Design of Linear.app](https://telablog.com/the-elegant-design-of-linear-app/)
+- [Linear Design: The SaaS Design Trend — LogRocket](https://blog.logrocket.com/ux-design/linear-design/)
 
 ---
 
@@ -38,10 +52,21 @@ Notion proves that powerful tools can still feel approachable. Their design syst
 - **Empty states that guide.** Notion's empty states aren't just "nothing here" — they suggest what to do next. Our empty list state should guide users to paste their first URL.
 - **Inline everything.** Properties, tags, and metadata are editable inline without opening a modal. For v1 we're using sheets/modals, but the inline-editing philosophy influences how we think about reducing friction.
 
+**Notion's core design principles (from their design team):**
+- **"Make a blank paper."** Give users a flexible, open canvas rather than rigid templates.
+- **"Design for your future self."** Build adaptable systems that anticipate how needs evolve.
+- **"Be purposeful."** Continuously evaluate every component — if it doesn't serve obvious purpose and value, remove it.
+- **"Prioritize simple user experiences."** Powerful backends are possible, but user-facing workflows must remain intuitive.
+- **Iterate through permutations.** Replicate flows again and again, tweaking small details until finding the best version.
+- **Prototype in code.** Move from mockups to browser as quickly as possible — trying designs in a browser reveals problems that mockups miss.
+
 **Resources:**
-- [Notion's design principles](https://www.notion.com/about) — simplicity, power, beauty
-- [Notion's engineering blog](https://www.notion.com/blog/topic/tech) — posts on performance, collaboration, and real-time sync
-- [Notion design system on Figma Community](https://www.figma.com/community/search?resource_type=mixed&sort_by=relevancy&query=notion+design+system) — community recreations of Notion's components
+- [Notion's Design Process and Principles — Design Matters](https://recordings.designmatters.io/talks/notions-design-process-and-principles/)
+- [The Philosophy Behind Notion — Medium](https://medium.com/@odeson/the-philosophy-behind-notion-make-a-blank-paper-e6c55eca8344)
+- [I Studied Notion's UX — Medium](https://medium.com/@olubanjokolapo2007/i-studied-notions-ux-and-here-s-what-it-taught-me-about-designing-tools-for-builders-23b2399ff2cc)
+- [How Notion Pulled Itself Back from Failure — Figma Blog](https://www.figma.com/blog/design-on-a-deadline-how-notion-pulled-itself-back-from-the-brink-of-failure/)
+- [How to Create a Design System That Works — Notion Blog](https://www.notion.com/blog/how-to-create-a-design-system)
+- [Notion UX Review — Adam Fard](https://adamfard.com/blog/notion-ux-review)
 
 ---
 
@@ -59,6 +84,24 @@ Airbnb's wishlist feature is the closest existing pattern to what ShopIt does. U
 **Resources:**
 - [Airbnb Design](https://airbnb.design/) — their design team's blog
 - [Airbnb's design language system (DLS)](https://airbnb.design/building-a-visual-language/) — foundational post on how they think about design systems
+
+---
+
+### Wishlist / Shopping List UX Research
+
+Patterns identified across e-commerce wishlist implementations:
+
+- **Wishlist icons/buttons on every product touchpoint** — product lists, product pages, shopping carts, and main menus. The save action should be everywhere.
+- **Category tabs** for browsing saved products within a list.
+- **Sorting by multiple criteria** — price, date added, priority. Users expect this.
+- **Wishlist treated as important as the shopping cart.** Not a secondary feature hidden in a submenu. First-class citizen in the nav.
+- **Customizable and editable lists.** Users want to rename, reorder, and organize.
+
+**Resources:**
+- [Designing Wishlists in E-Commerce — TheStory.is](https://thestory.is/en/journal/designing-wishlists-in-e-commerce/)
+- [How to Prototype a Wish List App — Justinmind](https://www.justinmind.com/blog/how-to-prototype-a-wish-list-app/)
+- [Amazon Wishlist Case Study — Medium](https://medium.com/@natashadeacon/a-case-study-on-the-amazon-shopping-mobile-app-ui-design-for-the-wish-list-feature-27806cbcdc4e)
+- [Wishlist App Designs — Dribbble](https://dribbble.com/tags/wishlist-app)
 
 ---
 
