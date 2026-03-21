@@ -12,7 +12,7 @@ Next.js App Router gives us three execution contexts. Pick the right one:
 
 **Rule of thumb:** If it's a user clicking a button → Server Action. If it's async processing or needs streaming → API Route. If it's just displaying data → Server Component with direct Supabase query.
 
-We do NOT use Supabase Edge Functions. Next.js API routes on Vercel serve the same purpose, and keeping everything in one codebase/runtime is simpler.
+We use one **Supabase Edge Function** for the URL ingestion worker (scraping + extraction). This is the one place where Vercel's Hobby plan 60s timeout is too short — scraping an arbitrary site + Gemini extraction can take 30-90s. Supabase Edge Functions run on Deno Deploy with a 400s wall-clock limit, which gives plenty of headroom. Everything else stays in Next.js.
 
 ---
 
@@ -28,7 +28,9 @@ lib/supabase/
 
 The server client reads the user's session from cookies (Supabase Auth + Next.js middleware). All queries go through RLS — no `service_role` key in the app except for the ingestion pipeline (which writes AI-generated data as "system").
 
-For the ingestion pipeline and AI operations that write on behalf of the system, we use a `service_role` client scoped to a single `lib/supabase/admin.ts` file. This bypasses RLS intentionally — the AI is writing data that no single user "owns".
+For the Expert Opinion API route, we use a `service_role` client scoped to `lib/supabase/admin.ts`. This bypasses RLS intentionally — the AI is writing data that no single user "owns".
+
+The `ingest-product` Edge Function creates its own Supabase client using `Deno.env` (Supabase automatically injects the service role key into Edge Functions). It bypasses RLS to update product rows with extracted data.
 
 ---
 
@@ -55,21 +57,20 @@ Supabase Auth with magic links (email OTP). No passwords.
 
 ```
 app/api/
-  products/
-    ingest/route.ts        POST — URL ingestion pipeline (scrape + extract)
   lists/
     [listId]/
       expert-opinion/route.ts   POST — generate/regenerate expert opinion
 ```
 
-That's it for v1. Everything else (CRUD for lists, products, comments, members) is Server Actions — they don't need dedicated API routes.
+That's it — one API route for v1. URL ingestion is handled by a Supabase Edge Function (see below). Everything else (CRUD for lists, products, comments, members) is Server Actions.
 
 ### Why so few routes?
 
 CRUD operations are simple Supabase queries. Server Actions handle them cleanly with form validation, optimistic UI, and `revalidatePath`. API routes are reserved for operations that:
-- Call external services (Firecrawl/Jina, Gemini)
-- Take more than a few seconds
-- Need to stream progress to the client
+- Call external services (Gemini) with meaningful processing time
+- Need to return structured results beyond a simple mutation
+
+URL ingestion is offloaded to a Supabase Edge Function because it can exceed Vercel Hobby's 60s timeout.
 
 ---
 
@@ -102,38 +103,46 @@ Each action:
 This is the core backend flow. User pastes a URL → we scrape, extract, and store structured product data.
 
 ```
-POST /api/products/ingest
-Body: { listId, url }
-
-┌─────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  Validate   │────▶│   Scrape     │────▶│  AI Extract  │────▶│    Store     │
-│  & Insert   │     │  (Firecrawl) │     │   (Gemini)   │     │  (Supabase)  │
-└─────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
-      │                                                              │
-      ▼                                                              ▼
-  Return product ID                                        Realtime pushes
-  immediately (status: pending)                            update to UI
+User pastes URL
+      │
+      ▼
+┌─────────────┐   DB trigger    ┌──────────────────────────────────────┐
+│  Server     │ ──────────────▶ │  Supabase Edge Function (worker)    │
+│  Action:    │                 │                                      │
+│  Insert     │                 │  1. Scrape URL (Firecrawl)           │
+│  product    │                 │  2. Extract with Gemini              │
+│  (pending)  │                 │  3. Update product row (completed)   │
+└─────────────┘                 └──────────────────────────────────────┘
+      │                                        │
+      ▼                                        ▼
+  UI shows                            Realtime pushes
+  skeleton card                       update to UI
 ```
 
 ### Step by step:
 
-**1. Validate & Insert (immediate response)**
+**1. Insert product (Server Action — instant)**
 ```
 - Authenticate user, verify list membership (editor+)
 - Validate URL format
 - Extract domain from URL
 - Insert product row: extraction_status = 'pending', url, domain, list_id, added_by
-- Return { productId } to the client immediately (202 Accepted)
-- Continue processing in the background (see below)
+- UI immediately shows a skeleton card for the new product
 ```
 
-**2. Background processing**
+This is a regular Server Action (`lib/actions/products.ts` → `addProduct`), not an API route. It returns instantly.
 
-The rest happens after the response is sent. We use `waitUntil()` (Vercel's API for background work in serverless functions) to continue processing without blocking the response.
+**2. Queue pickup (Supabase Database Webhook → Edge Function)**
+
+A Supabase Database Webhook fires on `INSERT` into `products` where `extraction_status = 'pending'`. It invokes the `ingest-product` Edge Function with the product ID.
 
 ```
+supabase/functions/ingest-product/index.ts
+
+- Receive { productId } from webhook payload
+- Fetch the product row (url, domain, list category)
 - Update extraction_status → 'processing'
-- Call Firecrawl/Jina to scrape the URL → get page content (markdown/HTML)
+- Call Firecrawl to scrape the URL → get page content (markdown)
 - Store raw response in raw_scraped_data
 - Send scraped content to Gemini with extraction prompt
 - Parse Gemini's structured output
@@ -141,15 +150,35 @@ The rest happens after the response is sent. We use `waitUntil()` (Vercel's API 
     title, brand, model, image_url,
     price_min, price_max, currency, price_note,
     specs (jsonb), pros, cons,
-    rating, review_count,
+    rating, review_count, scraped_reviews (jsonb),
     ai_summary, ai_review_summary, ai_verdict
 - Set extraction_status → 'completed', ai_extracted_at → now()
 - On any error: set extraction_status → 'failed', extraction_error → message
 ```
 
+**Why a Supabase Edge Function instead of a Next.js API route?**
+- Vercel Hobby has a 60s function timeout. Scraping an arbitrary site (not just Amazon — independent blogs, niche stores, review sites) + Gemini extraction can take 30-90s.
+- Supabase Edge Functions have a 400s wall-clock limit. Plenty of headroom.
+- The database webhook is the queue mechanism — no need for a separate queue service.
+- If we upgrade to Vercel Pro (300s limit), we could move this back to a Next.js API route, but the Edge Function approach is cleaner regardless.
+
 **3. Client receives updates via Supabase Realtime**
 
 The client subscribes to changes on the product row. When `extraction_status` changes from `pending` → `processing` → `completed`, the UI updates the product card in real-time (loading skeleton → populated card).
+
+### Scraping: Beyond Big E-Commerce
+
+Firecrawl is the scraper, but we're not just scraping Amazon and Flipkart. Users will paste URLs from:
+- **Independent stores** (D2C brands, niche retailers)
+- **Review sites** (GSMArena, RTings, blog reviews)
+- **Social/forum links** (Reddit threads, YouTube descriptions)
+- **Aggregators** (Google Shopping results, PriceHistory pages)
+
+The extraction prompt needs to handle wildly different page structures. Firecrawl's markdown output normalizes most of this, but the Gemini prompt must be robust to:
+- Pages with no price (review sites) → `price_min`/`price_max` = null
+- Pages with no reviews → `scraped_reviews` = [], `rating` = null
+- Pages with multiple products → extract the one most relevant to the URL
+- Non-English pages → extract what's possible, transliterate if needed
 
 ### Gemini Extraction Prompt
 
@@ -173,6 +202,10 @@ Output: JSON matching our product schema
   "cons": ["No Dolby Vision", "Plastic build", ...],
   "rating": 4.3,
   "review_count": 1247,
+  "scraped_reviews": [
+    { "snippet": "Best TV I've bought...", "rating": 5, "source": "Amazon.in" },
+    { "snippet": "Decent for the price but backlight bleed...", "rating": 3, "source": "Amazon.in" }
+  ],
   "ai_summary": "One paragraph overview...",
   "ai_review_summary": "What reviewers consistently say...",
   "ai_verdict": "Best value under ₹30K"
@@ -181,11 +214,14 @@ Output: JSON matching our product schema
 
 We use Gemini's structured output mode (JSON schema response) to enforce the shape. This avoids parsing issues and retries.
 
+`scraped_reviews` captures review excerpts found on the page. `ai_review_summary` is Gemini's synthesis of those reviews into a readable paragraph. Both are stored — raw snippets for future re-summarization, summary for display.
+
 ### Error Handling
 
-- **Scraping fails** (site blocks, timeout, 404): Mark `failed`, store error. User can retry via "Re-extract" button.
+- **Scraping fails** (site blocks, timeout, 404): Mark `failed`, store error. User can retry via "Re-extract" button which re-inserts with `pending` status, triggering the webhook again.
 - **Gemini fails** (rate limit, malformed response): Same — mark `failed`. Raw data is preserved so retry doesn't re-scrape.
 - **Partial extraction** (Gemini returns some fields but not others): Accept what we get. Null fields are fine — the UI handles missing data gracefully (shows "—" or hides the section).
+- **Edge Function crashes**: Supabase logs the error. Product stays in `processing` state. A future improvement could be a "stuck detection" check (if `processing` for > 5 minutes, reset to `failed`).
 
 ### Rate Limiting
 
@@ -256,24 +292,6 @@ The client compares `list_ai_opinions.product_count` with the current product co
 
 ---
 
-## AI Comparison Notes
-
-When a new product is added to a list that already has products, we want to update `ai_comparison_notes` on all products. This runs as part of the ingestion pipeline (after extraction completes):
-
-```
-After successful extraction:
-  - Count other completed products in the same list
-  - If count >= 1:
-    - Fetch all completed products
-    - Send to Gemini: "Compare this new product against the others"
-    - Update ai_comparison_notes on the new product
-    - Optionally update ai_comparison_notes on existing products too
-```
-
-For v1, we only update the NEW product's comparison notes. Updating all products on every addition gets expensive with large lists. The "Get Expert Opinion" button handles the holistic comparison.
-
----
-
 ## Realtime Subscriptions
 
 Client-side Supabase Realtime for live updates. Two subscriptions:
@@ -315,8 +333,6 @@ supabase
 ```
 app/
   api/
-    products/
-      ingest/route.ts              # URL ingestion pipeline
     lists/
       [listId]/
         expert-opinion/route.ts    # Expert Opinion generation
@@ -337,20 +353,21 @@ lib/
     admin.ts                       # Service role client (AI writes)
   actions/
     lists.ts                       # List CRUD actions
-    products.ts                    # Product CRUD + shortlist/purchase actions
+    products.ts                    # Product CRUD + shortlist/purchase + addProduct (insert)
     members.ts                     # Member management actions
     comments.ts                    # Comment CRUD actions
   ai/
-    extract.ts                     # Gemini extraction prompt + parsing
     expert-opinion.ts              # Expert Opinion prompt + parsing
     prompts.ts                     # Shared prompt templates
-  scraper/
-    index.ts                       # Firecrawl/Jina client wrapper
-    parse-url.ts                   # URL validation, domain extraction
   validators/
     lists.ts                       # Zod schemas for list inputs
     products.ts                    # Zod schemas for product inputs
     members.ts                     # Zod schemas for member inputs
+
+supabase/
+  functions/
+    ingest-product/index.ts        # Edge Function: scrape + extract worker
+  migrations/                      # SQL migrations (schema, RLS, triggers)
 
 middleware.ts                      # Auth session refresh + route protection
 ```
@@ -384,4 +401,4 @@ NEXT_PUBLIC_APP_URL=                # for auth redirects
 - **File uploads** — no user-uploaded images; `image_url` comes from scraping
 - **Search / full-text** — product list is small enough for client-side filtering
 - **Caching layer** — at family scale, Supabase queries are fast enough without Redis
-- **Queue system** — `waitUntil()` handles background processing; no need for BullMQ/etc for v1
+- **Queue system** — Supabase Database Webhook + Edge Function is the queue; no need for BullMQ/Redis

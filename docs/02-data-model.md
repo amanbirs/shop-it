@@ -148,14 +148,14 @@ create table public.products (
   pros            text[] default '{}',
   cons            text[] default '{}',
 
-  -- Aggregate review data (from the source site)
+  -- Review data (from the source site, extracted by AI)
   rating          numeric(3,2),        -- e.g., 4.50
   review_count    integer,
+  scraped_reviews jsonb default '[]',  -- [{snippet, rating, source, date}] — review excerpts from page
 
   -- AI-generated insights (Gemini outputs)
   ai_summary      text,                -- one-paragraph product overview written by AI
   ai_review_summary text,              -- AI synthesis of customer reviews (via grounding / source site)
-  ai_comparison_notes text,            -- AI notes on how this compares to others in the same list
   ai_verdict      text,                -- AI's quick take: "Best value", "Premium pick", "Risky — mixed reviews"
   ai_extracted_at timestamptz,         -- when AI last processed this product
 
@@ -190,11 +190,11 @@ A TV has screen size, refresh rate, panel type. A stroller has weight capacity, 
 Many products show a range — "$499 - $699" depending on size, color, or configuration. Two fields handle this cleanly. For a single fixed price, `price_min` is the price and `price_max` is null. The UI renders: `$499` (single) or `$499 – $699` (range). `price_note` captures context like "Sale ends Apr 1" or "Refurbished price" that doesn't fit a number.
 
 **Why dedicated AI columns instead of a single `ai_output` JSONB:**
-These fields (`ai_summary`, `ai_review_summary`, `ai_comparison_notes`, `ai_verdict`) are always present and always strings. Dedicated columns mean:
+These fields (`ai_summary`, `ai_review_summary`, `ai_verdict`) are always present and always strings. Dedicated columns mean:
 - Type safety — can't accidentally store a number in `ai_summary`
 - Queryable — `WHERE ai_verdict ILIKE '%best value%'` without JSON operators
 - Clear contract — the UI knows exactly what to render and where
-- Individually updatable — re-running comparison notes (when new products are added) doesn't touch the review summary
+- Individually updatable — re-running review summary doesn't touch the verdict
 
 `ai_extracted_at` tracks when AI last processed this product. Useful for knowing if insights are stale after the product page changes.
 
@@ -359,8 +359,9 @@ Nothing in the current schema needs to change — these are additive tables.
 
 1. **No `product_images` table.** `image_url` (single hero image) is sufficient for v1. The product's main photo is what shows on the card. Users click through to the source URL for full galleries.
 2. **No votes for v1.** No votes on products or lists. The workflow is: compare → shortlist → choose one. Shortlisting (`is_shortlisted`) is the signal. Like an Airbnb wishlist — you heart the ones you like, then pick.
-3. **No scraped reviews for v1.** We store `rating` and `review_count` (aggregate data from the source site) on the product. For detailed review analysis, we'll use AI grounding (Gemini can access source site reviews at inference time) rather than scraping and storing individual reviews. This avoids scraping complexity and storage costs.
-4. **Expert Opinion: manual regeneration via button.** The UI shows a "Get Expert Opinion" button (or "Regenerate" if one exists). Staleness is indicated via `product_count` mismatch. Auto-regeneration triggers are a v2 consideration.
+3. **Store scraped reviews.** We store `rating`, `review_count`, and `scraped_reviews` (JSONB array of review excerpts extracted by Gemini from the scraped page). The `ai_review_summary` field is generated from these during extraction. Storing the raw review snippets means we can re-summarize later with better prompts without re-scraping.
+4. **No per-product AI comparison notes.** Dropped `ai_comparison_notes` — the Expert Opinion feature handles holistic comparison across all products in a list. One fewer Gemini call per ingestion.
+5. **Expert Opinion: manual regeneration via button.** The UI shows a "Get Expert Opinion" button (or "Regenerate" if one exists). Staleness is indicated via `product_count` mismatch. Auto-regeneration triggers are a v2 consideration.
 
 ## Open Questions
 
