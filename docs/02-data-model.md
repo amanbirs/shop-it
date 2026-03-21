@@ -17,13 +17,13 @@
 │          │       │              │       │              │
 │          │──1:N──│ list_members │       │              │
 └──────────┘       └──────────────┘       └──┬──┬──┬─────┘
-                                              │  │  │
-                                     1:N──────┘  │  └──────1:N
-                                     ▼           │         ▼
-                              ┌───────────────┐  │  ┌───────────┐
-                              │   customer    │  │  │  comments  │
-                              │   _reviews    │  │  └───────────┘
-                              └───────────────┘  │
+                          │                   │  │  │
+                       1:1│          1:N──────┘  │  └──────1:N
+                          ▼          ▼           │         ▼
+                   ┌──────────────┐  ┌─────────────┐  ┌──────────┐
+                   │  list_ai    │  │  customer   │  │ comments │
+                   │  _opinions  │  │  _reviews   │  └──────────┘
+                   └──────────────┘  └─────────────┘
                                               1:N│
                                                  ▼
                                            ┌───────────┐
@@ -67,6 +67,11 @@ create table public.lists (
   category    text,                    -- optional: "electronics", "furniture", etc.
   status      text not null default 'active'
                 check (status in ('active', 'archived')),
+  -- Budget context (used by AI Expert Opinion)
+  budget_min  numeric(12,2),             -- e.g., 30000.00 (₹30K)
+  budget_max  numeric(12,2),             -- e.g., 50000.00 (₹50K)
+  purchase_by date,                      -- when do they need to decide/buy?
+
   owner_id    uuid not null references public.profiles(id),
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
@@ -78,6 +83,8 @@ create table public.lists (
 
 - **`category` is optional and freeform.** I considered an enum, but categories are open-ended (TVs, laptops, strollers, espresso machines...). A freeform text field lets users type whatever they want. We can use this to tune Gemini extraction prompts per category later.
 - **`status` vs `archived_at`** — we have both. `status` is the queryable flag (index-friendly), `archived_at` records when. Could drop one, but having both is cheap and useful.
+- **`budget_min` / `budget_max`** — budget context for the AI Expert Opinion feature. Without this, AI recommendations are generic ("best overall") rather than personalized ("best within your ₹30K-50K budget"). Currency is inherited from the products in the list (all INR by default).
+- **`purchase_by`** — a soft deadline. AI can factor in shipping times or sale end dates. The UI can show a countdown badge. A `date` (not `timestamptz`) because "by March 30" is precise enough — nobody needs hour-level purchase deadlines.
 - **No `icon` or `color` field yet.** Tempted to add for UX polish, but keeping it minimal for v1. Easy to add later.
 
 ---
@@ -160,6 +167,9 @@ create table public.products (
   -- Workflow (simple booleans — not a state machine)
   is_shortlisted  boolean not null default false,
   is_purchased    boolean not null default false,
+  purchased_at    timestamptz,             -- when the purchase happened
+  purchased_price numeric(12,2),           -- actual price paid (may differ from listed price)
+  purchase_url    text,                    -- actual buy link (could be affiliate link later)
 
   -- AI processing
   extraction_status text not null default 'pending'
@@ -218,6 +228,9 @@ The original design had a `status` field with values like `researching → short
 - You might buy something that was never formally shortlisted
 - You might shortlist 5 items and buy 2 of them
 Booleans are simpler and more honest about how decisions actually work. The UI can derive views: "All" (everything), "Shortlisted" (`is_shortlisted = true`), "Purchased" (`is_purchased = true`). No invalid state transitions to worry about.
+
+**Why `purchased_at`, `purchased_price`, and `purchase_url`:**
+These complement `is_purchased`. Knowing *when* something was bought is useful for warranty tracking. `purchased_price` captures what was actually paid (vs the listed price) — powers "you saved ₹X" features and budget tracking. `purchase_url` separates the "buy here" link from the research `url` — useful for affiliate links later. All three are painful to backfill if added later since you'd lose the original data.
 
 **Why `position` for ordering:**
 Users will want to drag-and-drop reorder products. An integer position field is the simplest approach. For v1 with small lists, renumbering on reorder is fine.
@@ -292,7 +305,7 @@ create table public.comments (
 
 ---
 
-### 6. `votes`
+### 7. `votes`
 
 Simple thumbs up/down on products. Helps family members signal preferences.
 
@@ -312,6 +325,45 @@ create table public.votes (
 - **Composite PK** — one vote per user per product, enforced at the DB level. Upsert to change your vote.
 - **`smallint` over `boolean` or `text`** — `SUM(vote)` gives you the net score directly. With a boolean you'd need `COUNT(CASE WHEN ...)`. Small optimization but it's cleaner.
 - **No "reaction" system.** Tempted to support emoji reactions (like Notion), but a simple up/down is more decisive for purchase decisions. You're trying to narrow down, not express feelings.
+
+---
+
+### 8. `list_ai_opinions`
+
+AI-generated "Expert Opinion" for a list — a holistic review of all products with recommendations.
+
+```sql
+create table public.list_ai_opinions (
+  id                uuid primary key default gen_random_uuid(),
+  list_id           uuid not null unique references public.lists(id) on delete cascade,
+
+  -- Structured opinion (UI renders each as a section)
+  top_pick          uuid references public.products(id) on delete set null,
+  top_pick_reason   text,
+  value_pick        uuid references public.products(id) on delete set null,
+  value_pick_reason text,
+  summary           text,           -- "Based on your 6 options, here's what stands out..."
+  comparison        text,           -- prose comparing the products
+  concerns          text,           -- "Watch out for..." — red flags across the set
+  verdict           text,           -- final recommendation paragraph
+
+  -- Context the AI used (so we know when it's stale)
+  product_count     integer,        -- how many products were in the list when generated
+  generated_at      timestamptz not null default now(),
+  model_version     text,           -- which AI model produced this, for debugging
+
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now()
+);
+```
+
+**Considerations:**
+
+- **Why 1:1 with lists (not versioned)?** For v1, one opinion per list is enough. When the user clicks "Get Expert Opinion" or adds/removes products, we regenerate in-place. If we want history later, we add a `list_ai_opinion_history` table — no migration needed on the main table.
+- **Why `top_pick` / `value_pick` are FKs?** The UI can highlight these products directly — "AI recommends this" badge on the card. `on delete set null` means if the product is removed, the opinion doesn't break, it just loses the reference.
+- **Why structured columns instead of one big `content` text?** The UI can render these as distinct sections (cards, accordions). We can update `comparison` without touching `verdict` if only one product changed.
+- **Why `product_count` and `generated_at`?** Staleness detection. If the list had 3 products when the opinion was generated and now has 6, the UI can prompt "Your expert opinion is outdated — regenerate?" without us tracking individual product changes.
+- **Why `model_version`?** Debugging and quality tracking. If we switch from Gemini 1.5 to 2.0, we can see which model produced which opinion and compare quality.
 
 ---
 
@@ -336,6 +388,8 @@ create index idx_comments_product_id on comments(product_id);
 
 -- Votes by product (for aggregation)
 create index idx_votes_product_id on votes(product_id);
+
+-- list_ai_opinions already has a unique constraint on list_id (acts as index)
 ```
 
 At family scale (< 1000 rows total), indexes barely matter. But they're free to add and good practice.
@@ -355,6 +409,7 @@ Supabase RLS policies control who sees what, enforced at the database level.
 | `customer_reviews` | Same as products (read-only for all members; only system/AI writes) |
 | `comments` | Same as products; users can only edit/delete their own comments |
 | `votes` | Same as products; users can only modify their own votes |
+| `list_ai_opinions` | Same as lists — visible to all members of the list; only system/AI writes |
 
 **Key insight:** Almost every policy joins through `list_members`. This is the access control backbone.
 
@@ -381,3 +436,5 @@ Nothing in the current schema needs to change — these are additive tables.
 1. **Do we need a `product_images` table?** Currently just `image_url` (single hero image). Multiple images would need a separate table. For v1, one image feels sufficient since users can click through to the original URL for galleries.
 2. **Should votes be on lists too?** Currently only on products. List-level voting ("which project should we tackle first?") could be useful but feels like scope creep for v1.
 3. **How many customer reviews to extract per product?** Leaning towards top 10-20 most helpful. More is better for AI summaries but costs more to scrape and store.
+4. **Should Expert Opinion auto-regenerate?** When a product is added/removed, we could auto-regenerate the opinion. Or we could just mark it stale (via `product_count` mismatch) and let the user trigger regeneration. Leaning towards manual trigger for v1 to avoid unnecessary AI costs.
+5. **Should Expert Opinion factor in votes/comments?** The AI could weigh family members' votes and discussion when making recommendations. This would make the opinion more personalized but adds prompt complexity. Worth exploring for v1 if the prompt is simple enough.
