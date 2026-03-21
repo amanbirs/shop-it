@@ -121,11 +121,13 @@ The core table. Each row is one product URL that was ingested.
 create table public.products (
   id              uuid primary key default gen_random_uuid(),
   list_id         uuid not null references public.lists(id) on delete cascade,
-  added_by        uuid not null references public.profiles(id),
+  added_by        uuid references public.profiles(id),  -- null when added by AI
+  added_via       text not null default 'user'
+                    check (added_via in ('user', 'ai')),  -- who added this product
 
   -- Source
   url             text not null,
-  domain          text,                -- extracted: "amazon.ca", "bestbuy.ca", etc.
+  domain          text,                -- extracted: "amazon.in", "flipkart.com", etc.
 
   -- Extracted data (populated by AI)
   title           text,
@@ -136,7 +138,7 @@ create table public.products (
   -- Pricing (supports ranges for configurable products)
   price_min       numeric(12,2),       -- lowest price (or the only price if no range)
   price_max       numeric(12,2),       -- highest price (null if single price)
-  currency        text default 'CAD',
+  currency        text default 'INR',
   price_note      text,                -- e.g., "Starting from", "Refurbished", "Sale ends Apr 1"
 
   -- Flexible structured data
@@ -155,9 +157,9 @@ create table public.products (
   ai_verdict      text,                -- AI's quick take: "Best value", "Premium pick", "Risky — mixed reviews"
   ai_extracted_at timestamptz,         -- when AI last processed this product
 
-  -- Workflow
-  status          text not null default 'researching'
-                    check (status in ('researching', 'shortlisted', 'decided', 'purchased')),
+  -- Workflow (simple booleans — not a state machine)
+  is_shortlisted  boolean not null default false,
+  is_purchased    boolean not null default false,
 
   -- AI processing
   extraction_status text not null default 'pending'
@@ -207,12 +209,22 @@ Scraping + AI extraction takes a few seconds. The UI needs to show a loading sta
 **Why `raw_scraped_data` is kept:**
 If we improve our Gemini prompt later, we can re-extract without re-scraping. Scraping is the expensive/slow part; re-extraction from stored data is fast and nearly free.
 
+**Why `added_by` + `added_via` instead of just one field:**
+`added_by` is the user who added the product (nullable — null when AI adds it in v2). `added_via` is how it was added: `'user'` (someone pasted a URL) or `'ai'` (the agent suggested it in v2). We need both because even when AI suggests a product, we may want to attribute it to the user who triggered the AI request. For v1 it's always `'user'` with a valid `added_by`, but the schema is ready for v2 agentic additions.
+
+**Why `is_shortlisted` + `is_purchased` booleans instead of a status enum:**
+The original design had a `status` field with values like `researching → shortlisted → decided → purchased`. But purchase decisions aren't a linear pipeline:
+- You might shortlist something and then buy it directly (skipping "decided")
+- You might buy something that was never formally shortlisted
+- You might shortlist 5 items and buy 2 of them
+Booleans are simpler and more honest about how decisions actually work. The UI can derive views: "All" (everything), "Shortlisted" (`is_shortlisted = true`), "Purchased" (`is_purchased = true`). No invalid state transitions to worry about.
+
 **Why `position` for ordering:**
 Users will want to drag-and-drop reorder products. An integer position field is the simplest approach. For v1 with small lists, renumbering on reorder is fine.
 
 **What I considered but left out:**
 - `price_history jsonb` — tempting for price tracking, but that's v2+
-- `tags text[]` — could be useful, but `status` covers the main workflow; tags add complexity without clear v1 value
+- `tags text[]` — could be useful, but booleans cover the main workflow; tags add complexity without clear v1 value
 - `comparison_group` — for side-by-side compare sets; but the UI can handle this as a transient selection, no need to persist
 
 ---
@@ -308,7 +320,8 @@ create table public.votes (
 ```sql
 -- Most queries filter by list
 create index idx_products_list_id on products(list_id);
-create index idx_products_list_status on products(list_id, status);
+create index idx_products_list_shortlisted on products(list_id, is_shortlisted);
+create index idx_products_list_added_via on products(list_id, added_via);
 
 -- Member lookups
 create index idx_list_members_user_id on list_members(user_id);
