@@ -16,19 +16,14 @@
 │ profiles │──1:N──│    lists     │──1:N──│   products   │
 │          │       │              │       │              │
 │          │──1:N──│ list_members │       │              │
-└──────────┘       └──────────────┘       └──┬──┬──┬─────┘
-                          │                   │  │  │
-                       1:1│          1:N──────┘  │  └──────1:N
-                          ▼          ▼           │         ▼
-                   ┌──────────────┐  ┌─────────────┐  ┌──────────┐
-                   │  list_ai    │  │  customer   │  │ comments │
-                   │  _opinions  │  │  _reviews   │  └──────────┘
-                   └──────────────┘  └─────────────┘
-                                              1:N│
-                                                 ▼
-                                           ┌───────────┐
-                                           │   votes   │
-                                           └───────────┘
+└──────────┘       └──────────────┘       └──────┬───────┘
+                          │                      │
+                       1:1│                 1:N──┘
+                          ▼                 ▼
+                   ┌──────────────┐  ┌──────────┐
+                   │  list_ai    │  │ comments │
+                   │  _opinions  │  └──────────┘
+                   └──────────────┘
 ```
 
 ---
@@ -114,7 +109,7 @@ create table public.list_members (
 - **`joined_at` null = pending invite.** Rather than a separate `invitations` table, a null `joined_at` means they were invited but haven't accepted. Simpler than managing two tables. The trade-off is we can't invite someone who doesn't have an account yet — but Supabase Auth handles this: we create the invite, and when they sign up via magic link, we match by email and set `joined_at`.
 - **Three roles:**
   - `owner` — can delete the list, manage members
-  - `editor` — can add/remove products, comment, vote (default for family)
+  - `editor` — can add/remove products, comment, shortlist (default for family)
   - `viewer` — read-only (useful for sharing a finalized list)
 - **`invited_by`** — nice for UX ("Aman invited you to...") and audit trail.
 
@@ -159,7 +154,7 @@ create table public.products (
 
   -- AI-generated insights (Gemini outputs)
   ai_summary      text,                -- one-paragraph product overview written by AI
-  ai_review_summary text,              -- AI synthesis of customer reviews (themes, consensus, red flags)
+  ai_review_summary text,              -- AI synthesis of customer reviews (via grounding / source site)
   ai_comparison_notes text,            -- AI notes on how this compares to others in the same list
   ai_verdict      text,                -- AI's quick take: "Best value", "Premium pick", "Risky — mixed reviews"
   ai_extracted_at timestamptz,         -- when AI last processed this product
@@ -242,46 +237,7 @@ Users will want to drag-and-drop reorder products. An integer position field is 
 
 ---
 
-### 5. `customer_reviews`
-
-Extracted customer reviews from the source site. Preserved individually so you can browse them without leaving the app.
-
-```sql
-create table public.customer_reviews (
-  id          uuid primary key default gen_random_uuid(),
-  product_id  uuid not null references public.products(id) on delete cascade,
-
-  -- Review content (scraped from source)
-  author      text,                    -- reviewer name/handle if available
-  rating      numeric(3,2),            -- individual review rating (e.g., 5.00, 3.00)
-  title       text,                    -- review headline
-  content     text not null,           -- review body
-  source_date date,                    -- when the review was posted on the source site
-  verified    boolean default false,   -- "verified purchase" flag if available
-  helpful_count integer,               -- "X people found this helpful"
-
-  -- AI enrichment
-  sentiment   text check (sentiment in ('positive', 'negative', 'mixed', 'neutral')),
-  ai_tags     text[] default '{}',     -- AI-assigned tags: ["durability", "value", "noise", ...]
-
-  -- Metadata
-  source_url  text,                    -- direct link to this review if available
-  created_at  timestamptz not null default now()
-);
-```
-
-**Considerations:**
-
-- **Why a separate table?** Reviews are 1:N with products and can number in the hundreds. Stuffing them into JSONB on the product row would bloat reads when you just want the product card. A separate table lets us paginate, filter by sentiment, and sort by helpfulness.
-- **`ai_tags`** — Gemini tags each review with topics it covers (e.g., "battery life", "build quality", "customer support"). This powers filtering like "show me all reviews that mention durability" and feeds into the `ai_review_summary` on the product.
-- **`sentiment`** — simple 4-value classification. Not trying to be nuanced — just enough to let the UI show a red/yellow/green indicator or filter to "show me the negative reviews".
-- **`helpful_count`** — many sites surface this. Good for sorting to show the most useful reviews first.
-- **We don't scrape ALL reviews.** The extraction pipeline grabs the top 10-20 most helpful/recent reviews. This is enough for decision-making without ballooning storage or scraping costs.
-- **No user edits.** These are read-only records from external sources. Users discuss via the `comments` table instead.
-
----
-
-### 6. `comments`
+### 5. `comments`
 
 Threaded discussion on a product.
 
@@ -305,30 +261,7 @@ create table public.comments (
 
 ---
 
-### 7. `votes`
-
-Simple thumbs up/down on products. Helps family members signal preferences.
-
-```sql
-create table public.votes (
-  product_id  uuid not null references public.products(id) on delete cascade,
-  user_id     uuid not null references public.profiles(id) on delete cascade,
-  vote        smallint not null check (vote in (1, -1)),  -- 1 = up, -1 = down
-  created_at  timestamptz not null default now(),
-
-  primary key (product_id, user_id)
-);
-```
-
-**Considerations:**
-
-- **Composite PK** — one vote per user per product, enforced at the DB level. Upsert to change your vote.
-- **`smallint` over `boolean` or `text`** — `SUM(vote)` gives you the net score directly. With a boolean you'd need `COUNT(CASE WHEN ...)`. Small optimization but it's cleaner.
-- **No "reaction" system.** Tempted to support emoji reactions (like Notion), but a simple up/down is more decisive for purchase decisions. You're trying to narrow down, not express feelings.
-
----
-
-### 8. `list_ai_opinions`
+### 6. `list_ai_opinions`
 
 AI-generated "Expert Opinion" for a list — a holistic review of all products with recommendations.
 
@@ -379,15 +312,8 @@ create index idx_products_list_added_via on products(list_id, added_via);
 create index idx_list_members_user_id on list_members(user_id);
 create index idx_list_members_list_id on list_members(list_id);
 
--- Customer reviews by product (with sentiment for filtering)
-create index idx_customer_reviews_product_id on customer_reviews(product_id);
-create index idx_customer_reviews_sentiment on customer_reviews(product_id, sentiment);
-
 -- Comments by product
 create index idx_comments_product_id on comments(product_id);
-
--- Votes by product (for aggregation)
-create index idx_votes_product_id on votes(product_id);
 
 -- list_ai_opinions already has a unique constraint on list_id (acts as index)
 ```
@@ -406,9 +332,7 @@ Supabase RLS policies control who sees what, enforced at the database level.
 | `lists` | Users can only see lists where they are a member (via `list_members`) |
 | `list_members` | Users can see members of lists they belong to; only owners can add/remove |
 | `products` | Users can see/add/edit products in lists they're a member of (editor+) |
-| `customer_reviews` | Same as products (read-only for all members; only system/AI writes) |
 | `comments` | Same as products; users can only edit/delete their own comments |
-| `votes` | Same as products; users can only modify their own votes |
 | `list_ai_opinions` | Same as lists — visible to all members of the list; only system/AI writes |
 
 **Key insight:** Almost every policy joins through `list_members`. This is the access control backbone.
@@ -431,10 +355,13 @@ Nothing in the current schema needs to change — these are additive tables.
 
 ---
 
+## Resolved Decisions
+
+1. **No `product_images` table.** `image_url` (single hero image) is sufficient for v1. The product's main photo is what shows on the card. Users click through to the source URL for full galleries.
+2. **No votes for v1.** No votes on products or lists. The workflow is: compare → shortlist → choose one. Shortlisting (`is_shortlisted`) is the signal. Like an Airbnb wishlist — you heart the ones you like, then pick.
+3. **No scraped reviews for v1.** We store `rating` and `review_count` (aggregate data from the source site) on the product. For detailed review analysis, we'll use AI grounding (Gemini can access source site reviews at inference time) rather than scraping and storing individual reviews. This avoids scraping complexity and storage costs.
+4. **Expert Opinion: manual regeneration via button.** The UI shows a "Get Expert Opinion" button (or "Regenerate" if one exists). Staleness is indicated via `product_count` mismatch. Auto-regeneration triggers are a v2 consideration.
+
 ## Open Questions
 
-1. **Do we need a `product_images` table?** Currently just `image_url` (single hero image). Multiple images would need a separate table. For v1, one image feels sufficient since users can click through to the original URL for galleries.
-2. **Should votes be on lists too?** Currently only on products. List-level voting ("which project should we tackle first?") could be useful but feels like scope creep for v1.
-3. **How many customer reviews to extract per product?** Leaning towards top 10-20 most helpful. More is better for AI summaries but costs more to scrape and store.
-4. **Should Expert Opinion auto-regenerate?** When a product is added/removed, we could auto-regenerate the opinion. Or we could just mark it stale (via `product_count` mismatch) and let the user trigger regeneration. Leaning towards manual trigger for v1 to avoid unnecessary AI costs.
-5. **Should Expert Opinion factor in votes/comments?** The AI could weigh family members' votes and discussion when making recommendations. This would make the opinion more personalized but adds prompt complexity. Worth exploring for v1 if the prompt is simple enough.
+1. **Should Expert Opinion factor in comments?** The AI could read family discussion when making recommendations. Adds prompt complexity but makes opinions more contextual. Decide after seeing v1 usage patterns.
