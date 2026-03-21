@@ -208,3 +208,272 @@ Card wrapper uses layout prop for smooth height transitions.
 - [Epic Web Dev — Glassmorphism with Tailwind](https://www.epicweb.dev/tips/creating-glassmorphism-effects-with-tailwind-css) — backdrop-blur technique
 
 ---
+
+## Page 2: Dashboard (`/`)
+
+### Overview
+
+The home page after login. Shows all the user's purchase lists as cards in a responsive grid. This is the "mission control" — quick access to every active purchase decision, plus a prominent way to start a new one.
+
+Two states: **populated** (user has lists) and **empty** (first-time user, no lists yet).
+
+Every list card gets two LLM-powered touches:
+1. **AI hype title** — when creating a new list, the AI auto-generates a fun, slightly dramatic title based on the category/description (e.g., "The Great TV Showdown" for a TV list, "Operation: Dream Couch" for furniture). The user sees this as the default title and can edit it anytime.
+2. **AI comment bubble** — a dynamic one-liner on each card that reacts to the list's current state. Positive, slightly funny, context-aware. Updates as the list evolves.
+
+### Layout
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  ┌──────┐                                              [+] [◑] [▤] │
+│  │ ◆    │  ShopIt                                     new  theme  │
+│  │ side │  ─────────────────────────────────────────────────────── │
+│  │ bar  │                                                          │
+│  │      │  Your Lists                              [⊞ Grid] [≡ List]│
+│  │ ───  │                                                          │
+│  │ Home │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐     │
+│  │ ···  │  │ 📺           │ │ 🛋️           │ │ 🎧           │     │
+│  │ list │  │ The Great TV │ │ Operation:   │ │ Audio Quest  │     │
+│  │ list │  │ Showdown     │ │ Dream Couch  │ │ 2026         │     │
+│  │ list │  │              │ │              │ │              │     │
+│  │      │  │ 4 products   │ │ 2 products   │ │ 6 products   │     │
+│  │      │  │ ★ 1 shortl.  │ │ ✓ purchased  │ │ ★ 3 shortl.  │     │
+│  │      │  │              │ │              │ │              │     │
+│  │      │  │ 🤖 "Four     │ │ 🤖 "Mission  │ │ 🤖 "Six      │     │
+│  │      │  │  contenders, │ │  accomplished│ │  options and │     │
+│  │      │  │  zero regrets│ │  — your butt │ │  your ears   │     │
+│  │      │  │  incoming!"  │ │  thanks you!"│ │  can't wait!"│     │
+│  │      │  │              │ │              │ │              │     │
+│  │      │  │ 2 members    │ │ 1 member     │ │ 3 members    │     │
+│  │      │  │ ○○           │ │ ○            │ │ ○○○          │     │
+│  │      │  └──────────────┘ └──────────────┘ └──────────────┘     │
+│  │      │                                                          │
+│  │      │  ┌─ ─ ─ ─ ─ ─ ─┐                                       │
+│  │      │  │  + New List  │  ← dashed border card                 │
+│  │      │  └─ ─ ─ ─ ─ ─ ─┘                                       │
+│  │      │                                                          │
+│  └──────┘                                                          │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Empty State (first-time user):**
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  ┌──────┐                                                          │
+│  │ ◆    │                                                          │
+│  │ side │         ┌─────────────────────────────┐                  │
+│  │ bar  │         │                             │                  │
+│  │      │         │    📦  No lists yet          │                  │
+│  │ ───  │         │                             │                  │
+│  │ Home │         │    Start your first          │                  │
+│  │      │         │    purchase decision         │                  │
+│  │      │         │                             │                  │
+│  │      │         │    ┌───────────────────┐    │                  │
+│  │      │         │    │  + Create a List  │    │                  │
+│  │      │         │    └───────────────────┘    │                  │
+│  │      │         │                             │                  │
+│  │      │         │    "What are we buying      │                  │
+│  │      │         │     today?" — ShopIt AI     │                  │
+│  │      │         │                             │                  │
+│  │      │         └─────────────────────────────┘                  │
+│  │      │                                                          │
+│  └──────┘                                                          │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Mobile (< 640px):** Sidebar collapses to bottom tab bar or hamburger. Cards stack into a single column. AI comment truncates to one line with ellipsis.
+
+### Design Decisions
+
+- **Card grid over table/list.** Lists are visual — each one represents a purchase mission. Cards let us show status, member avatars, and the AI comment at a glance. Grid feels like a dashboard; a table would feel like a spreadsheet.
+- **AI hype titles as defaults.** When a user creates "TV" as a list, the AI generates something like "The Great TV Showdown" as the default name. Fun, memorable, and gives each list personality. The user can always edit it to something boring if they want. Generated via a fast Gemini call at list creation time. Stored in `lists.name` — just a string, no special field needed.
+- **AI comment bubble on each card.** A small, dynamic one-liner that reacts to the list's state. Not static — regenerated when the list changes (product added, shortlisted, purchased). Examples:
+  - 0 products: *"Empty list, infinite possibilities."*
+  - 3 products added: *"Three contenders enter. One will be chosen."*
+  - 1 shortlisted: *"Getting closer — you've got a favorite!"*
+  - All purchased: *"Mission complete. Your wallet needs a hug."*
+  - Budget set, all products over budget: *"Your taste is expensive. We respect that."*
+  This is the personality layer — makes the app feel alive, not just a spreadsheet. Generated server-side, cached, regenerated on list state change. Lightweight Gemini call with minimal context (list stats + category).
+- **Flashlight hover effect.** Stripe-inspired radial gradient that follows the cursor across the card grid. Subtle — only visible on the card border. Ties all cards together as a cohesive surface.
+- **New List as a card.** The "+ New List" dashed-border card sits in the grid, not in a separate button. It's always the last card. Clicking it opens a dialog/sheet for list creation.
+- **Sidebar navigation.** Persistent sidebar (desktop) showing all lists. Current page highlighted. Collapsible. Mobile: bottom tab bar or hamburger. Mirrors Linear's sidebar pattern.
+
+### Element Breakdown
+
+| # | Element | Component | Implementation |
+|---|---------|-----------|----------------|
+| 1 | **Sidebar** | Custom component | `w-64` fixed left. Lists as nav items with emoji + name. Active state: `bg-accent text-accent-foreground`. Collapsible with `←` button. Mobile: hidden behind hamburger or swipe. |
+| 2 | **Header bar** | Flex row | "Your Lists" as `text-2xl font-semibold`. Right side: view toggle (grid/list), theme toggle, new list button. |
+| 3 | **View toggle** | shadcn `<ToggleGroup>` | Two options: grid icon, list icon. Persisted in URL via `nuqs` (`?view=grid`). |
+| 4 | **List card** | shadcn `<Card>` | `rounded-xl p-5 hover:shadow-lg transition-shadow cursor-pointer`. Click navigates to `/lists/[id]`. Contains all sub-elements below. |
+| 5 | **Card — emoji/icon** | `<span>` | Category emoji at top-left. Auto-assigned based on list category or user-chosen. `text-2xl`. |
+| 6 | **Card — AI hype title** | `<h3>` with edit affordance | `font-semibold text-lg text-foreground`. Truncated to 2 lines with `line-clamp-2`. Pencil icon on hover → inline edit or edit in creation dialog. Shows `✨` sparkle icon if AI-generated (not yet manually edited). |
+| 7 | **Card — stats row** | Flex row | Product count, shortlisted count, purchased count. `text-sm text-muted-foreground`. Icons: package, star, checkmark. |
+| 8 | **Card — AI comment bubble** | Styled `<p>` | `text-sm text-muted-foreground italic` with subtle `bg-muted/50 rounded-lg px-3 py-2` bubble. Prefixed with small `🤖` or `✨` icon. `line-clamp-2` on mobile. Has `ai-accent` left border (2px). |
+| 9 | **Card — member avatars** | Avatar stack | Overlapping circles (`-ml-2` on each after first). Shows up to 3 avatars + "+N" badge. `ring-2 ring-background` for separation. |
+| 10 | **Card — status badge** | shadcn `<Badge>` | Shows highest-priority status: "Purchased" (green), "Deciding" (amber), "Researching" (default). Based on `is_purchased` / `is_shortlisted` counts. |
+| 11 | **New List card** | `<Card>` variant | Dashed border `border-dashed border-2 border-muted-foreground/30`. "+" icon centered. `hover:border-muted-foreground/60 hover:bg-accent/50` transition. |
+| 12 | **Flashlight effect** | Mouse-tracking div | Radial gradient that follows `onMouseMove` across the grid container. Applied as a border glow on the nearest card. Uses CSS `background: radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), hsl(var(--ai-accent)/0.08), transparent 40%)`. |
+| 13 | **Empty state** | Centered card | Illustrated empty state with icon, title, description, and CTA button. Includes a fun AI quip that rotates. |
+
+### AI Features Detail
+
+#### AI Hype Titles
+
+**Trigger:** User creates a new list and provides a category or description.
+
+**Prompt pattern:**
+```
+Generate a short, fun, slightly dramatic title for a purchase research list.
+Category: {category}
+Description: {description}
+Requirements:
+- Max 30 characters
+- Memorable and slightly playful
+- Don't use generic phrases like "Ultimate Guide"
+- One title only, no quotes
+Examples:
+  "TV" → "The Great TV Showdown"
+  "running shoes" → "Sole Search 2026"
+  "coffee machine" → "Espresso Yourself"
+  "sofa" → "Operation: Dream Couch"
+  "air conditioner" → "The Big Chill"
+```
+
+**Implementation:**
+- Called via server action at list creation time
+- Fast Gemini Flash call (~200ms)
+- Stored directly in `lists.name`
+- User sees it immediately in the creation dialog as the pre-filled name
+- Editable text field — user can accept, modify, or replace entirely
+- If AI call fails, falls back to the user's raw category/description as the name
+- A small `✨` icon next to the title indicates it's AI-generated (removed if user edits)
+
+#### AI Comment Bubble
+
+**Trigger:** Regenerated when list state changes (product added/removed, shortlisted, purchased, budget changed).
+
+**Prompt pattern:**
+```
+Generate a short, positive, slightly funny one-liner comment about this purchase list.
+List: {name}
+Category: {category}
+Stats: {product_count} products, {shortlisted_count} shortlisted, {purchased_count} purchased
+Budget: {budget_min}-{budget_max} {currency}
+Requirements:
+- Max 60 characters
+- Positive and encouraging, slightly witty
+- React to the current state (empty list, making progress, purchased, over budget, etc.)
+- One line only, no quotes, no emoji
+```
+
+**Implementation:**
+- Called via background server action when list state changes
+- Debounced — waits 2s after last change before regenerating (avoids spam during rapid edits)
+- Stored in a new field: `lists.ai_comment text` (simple, cheap, cacheable)
+- Falls back to a static pool of defaults if AI call fails:
+  - `"Ready when you are."`
+  - `"The hunt begins."`
+  - `"Decisions, decisions..."`
+- Displayed on the dashboard card and at the top of the list detail page
+- Refreshed via Supabase Realtime — other list members see the update too
+
+**Data model addition needed:**
+```sql
+alter table public.lists add column ai_comment text;
+alter table public.lists add column ai_title_edited boolean default false;
+```
+
+### Animation Spec
+
+#### Card Entry (Stagger)
+
+```
+Timeline (on page load / data fetch):
+─────────────────────────────────────────────────────
+  0ms     Card 1    opacity 0→1, y: 12→0, scale: 0.97→1
+  60ms    Card 2    opacity 0→1, y: 12→0, scale: 0.97→1
+  120ms   Card 3    opacity 0→1, y: 12→0, scale: 0.97→1
+  ...     Card N    +60ms per card (caps at 6 cards, rest appear instantly)
+─────────────────────────────────────────────────────
+  Each element: duration 350ms, ease [0.25, 0.4, 0, 1]
+```
+
+#### Card Hover
+
+```
+Hover enter (150ms, ease-out):
+  - Card: shadow-md → shadow-xl, y: 0 → -2px
+  - Border: subtle glow from flashlight effect
+  - AI comment: opacity 0.7 → 1
+
+Hover exit (200ms, ease-in):
+  - Reverse all above
+```
+
+#### Flashlight Effect
+
+```
+On mouse move over grid container:
+  - Track cursor position via CSS custom properties (--mouse-x, --mouse-y)
+  - Radial gradient overlay follows cursor
+  - Only affects card borders (not fill)
+  - 600px radius, hsl(var(--ai-accent) / 0.06)
+  - Performance: GPU-accelerated, uses will-change: background
+```
+
+#### New Card Appearance (when a list is created)
+
+```
+New card animates in:
+  0ms    opacity 0, scale 0.9, blur 8px
+  400ms  opacity 1, scale 1, blur 0px
+  Ease: spring(1, 80, 10)
+
+"+ New List" card shifts right to accommodate (layout animation via Framer Motion)
+```
+
+### Dark Mode Adaptation
+
+| Element | Light | Dark |
+|---------|-------|------|
+| Page background | `bg-background` (white) | `bg-background` (near-black) |
+| Card background | `bg-card` (white) | `bg-card` (#111 range) |
+| Card border | `border-border` (zinc-200) | `border-border` (zinc-800) |
+| Card hover shadow | `shadow-xl` (gray) | `shadow-xl shadow-black/40` |
+| Flashlight glow | `hsl(ai-accent / 0.06)` | `hsl(ai-accent / 0.10)` — stronger in dark |
+| AI comment bg | `bg-muted/50` | `bg-muted/30` |
+| AI comment border | `border-l-2 border-ai-accent/30` | `border-l-2 border-ai-accent/50` |
+| Sidebar | `bg-card border-r` | `bg-card border-r border-border` |
+| New List card border | `border-muted-foreground/30` | `border-muted-foreground/20` |
+
+### Responsive Behavior
+
+| Breakpoint | Behavior |
+|-----------|----------|
+| Mobile (`< 640px`) | Sidebar hidden (hamburger or bottom tabs). Single column cards. AI comment truncated to 1 line. |
+| Tablet (`640-1024px`) | Sidebar collapsible (default collapsed). 2-column card grid. |
+| Desktop (`> 1024px`) | Sidebar visible. 3-column card grid. Flashlight effect active. |
+
+### Accessibility
+
+- Cards are focusable with `tabindex="0"` and navigate on Enter/Space
+- Card content has proper heading hierarchy (`h3` for title)
+- AI comment has `aria-label="AI comment: {text}"` for screen readers
+- Avatar stack has `aria-label="{count} members"` with tooltip listing names
+- View toggle is a proper `role="radiogroup"` with labeled options
+- Sidebar nav uses `<nav>` with `aria-label="Lists navigation"`
+- Empty state CTA is auto-focused for keyboard users
+- AI-generated content is marked with `aria-description="Generated by AI"` so screen readers announce it
+
+### References
+
+- [Aceternity UI — Component Library](https://www.aceternity.com/components) — animated card components with Framer Motion
+- [Hover.dev — Animated Cards](https://www.hover.dev/components/cards) — card hover effect patterns
+- [Stripe Cards Hover Effect](https://stripegradient.com/) — flashlight border effect technique
+- [Shadcn Studio — Bento Grid](https://shadcnstudio.com/blocks/bento-grid/bento-grid) — card grid layout blocks
+- [Launch UI — Bento Grid](https://www.launchuicomponents.com/docs/sections/bento-grid) — responsive grid component
+- [Bento Grid Design Guide (Landdding)](https://landdding.com/blog/blog-bento-grid-design-guide) — spacing and corner radius best practices
+- [ibelick — Bento Grid with CSS/Tailwind](https://dev.to/ibelick/creating-bento-grid-layouts-with-css-tailwind-css-26mo) — implementation tutorial
+
+---
