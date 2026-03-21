@@ -13,16 +13,22 @@
 
 ```
 ┌──────────┐       ┌──────────────┐       ┌──────────────┐
-│  users   │──1:N──│    lists     │──1:N──│   products   │
+│ profiles │──1:N──│    lists     │──1:N──│   products   │
 │          │       │              │       │              │
 │          │──1:N──│ list_members │       │              │
-└──────────┘       └──────────────┘       └──┬───────┬───┘
-                                              │       │
-                                           1:N│    1:N│
-                                              ▼       ▼
-                                        ┌────────┐ ┌───────┐
-                                        │comments│ │ votes │
-                                        └────────┘ └───────┘
+└──────────┘       └──────────────┘       └──┬──┬──┬─────┘
+                                              │  │  │
+                                     1:N──────┘  │  └──────1:N
+                                     ▼           │         ▼
+                              ┌───────────────┐  │  ┌───────────┐
+                              │   customer    │  │  │  comments  │
+                              │   _reviews    │  │  └───────────┘
+                              └───────────────┘  │
+                                              1:N│
+                                                 ▼
+                                           ┌───────────┐
+                                           │   votes   │
+                                           └───────────┘
 ```
 
 ---
@@ -123,19 +129,31 @@ create table public.products (
 
   -- Extracted data (populated by AI)
   title           text,
-  price           numeric(12,2),
-  currency        text default 'CAD',
   image_url       text,
   brand           text,
   model           text,
+
+  -- Pricing (supports ranges for configurable products)
+  price_min       numeric(12,2),       -- lowest price (or the only price if no range)
+  price_max       numeric(12,2),       -- highest price (null if single price)
+  currency        text default 'CAD',
+  price_note      text,                -- e.g., "Starting from", "Refurbished", "Sale ends Apr 1"
 
   -- Flexible structured data
   specs           jsonb default '{}',  -- {"screen_size": "65\"", "resolution": "4K", ...}
   pros            text[] default '{}',
   cons            text[] default '{}',
+
+  -- Aggregate review data (from the source site)
   rating          numeric(3,2),        -- e.g., 4.50
   review_count    integer,
-  review_summary  text,                -- AI-generated summary of reviews
+
+  -- AI-generated insights (Gemini outputs)
+  ai_summary      text,                -- one-paragraph product overview written by AI
+  ai_review_summary text,              -- AI synthesis of customer reviews (themes, consensus, red flags)
+  ai_comparison_notes text,            -- AI notes on how this compares to others in the same list
+  ai_verdict      text,                -- AI's quick take: "Best value", "Premium pick", "Risky — mixed reviews"
+  ai_extracted_at timestamptz,         -- when AI last processed this product
 
   -- Workflow
   status          text not null default 'researching'
@@ -160,6 +178,18 @@ create table public.products (
 
 **Why `specs` is JSONB:**
 A TV has screen size, refresh rate, panel type. A stroller has weight capacity, fold type, wheel size. These have zero overlap. JSONB lets us store whatever the AI extracts without predicting every category. The UI renders whatever keys exist. Trade-off: you can't do `WHERE specs.screen_size > 55` efficiently — but for family-scale data (10-50 products per list), this doesn't matter. If it did, we'd use GIN indexes on the JSONB.
+
+**Why `price_min`/`price_max` instead of a single `price`:**
+Many products show a range — "$499 - $699" depending on size, color, or configuration. Two fields handle this cleanly. For a single fixed price, `price_min` is the price and `price_max` is null. The UI renders: `$499` (single) or `$499 – $699` (range). `price_note` captures context like "Sale ends Apr 1" or "Refurbished price" that doesn't fit a number.
+
+**Why dedicated AI columns instead of a single `ai_output` JSONB:**
+These fields (`ai_summary`, `ai_review_summary`, `ai_comparison_notes`, `ai_verdict`) are always present and always strings. Dedicated columns mean:
+- Type safety — can't accidentally store a number in `ai_summary`
+- Queryable — `WHERE ai_verdict ILIKE '%best value%'` without JSON operators
+- Clear contract — the UI knows exactly what to render and where
+- Individually updatable — re-running comparison notes (when new products are added) doesn't touch the review summary
+
+`ai_extracted_at` tracks when AI last processed this product. Useful for knowing if insights are stale after the product page changes.
 
 **Why `pros`/`cons` are `text[]` not JSONB:**
 They're always a flat list of strings. Postgres arrays are simpler to query (`ANY()`, `array_length()`) and lighter than JSONB for this shape. Also renders cleanly in the UI as bullet points.
@@ -187,7 +217,46 @@ Users will want to drag-and-drop reorder products. An integer position field is 
 
 ---
 
-### 5. `comments`
+### 5. `customer_reviews`
+
+Extracted customer reviews from the source site. Preserved individually so you can browse them without leaving the app.
+
+```sql
+create table public.customer_reviews (
+  id          uuid primary key default gen_random_uuid(),
+  product_id  uuid not null references public.products(id) on delete cascade,
+
+  -- Review content (scraped from source)
+  author      text,                    -- reviewer name/handle if available
+  rating      numeric(3,2),            -- individual review rating (e.g., 5.00, 3.00)
+  title       text,                    -- review headline
+  content     text not null,           -- review body
+  source_date date,                    -- when the review was posted on the source site
+  verified    boolean default false,   -- "verified purchase" flag if available
+  helpful_count integer,               -- "X people found this helpful"
+
+  -- AI enrichment
+  sentiment   text check (sentiment in ('positive', 'negative', 'mixed', 'neutral')),
+  ai_tags     text[] default '{}',     -- AI-assigned tags: ["durability", "value", "noise", ...]
+
+  -- Metadata
+  source_url  text,                    -- direct link to this review if available
+  created_at  timestamptz not null default now()
+);
+```
+
+**Considerations:**
+
+- **Why a separate table?** Reviews are 1:N with products and can number in the hundreds. Stuffing them into JSONB on the product row would bloat reads when you just want the product card. A separate table lets us paginate, filter by sentiment, and sort by helpfulness.
+- **`ai_tags`** — Gemini tags each review with topics it covers (e.g., "battery life", "build quality", "customer support"). This powers filtering like "show me all reviews that mention durability" and feeds into the `ai_review_summary` on the product.
+- **`sentiment`** — simple 4-value classification. Not trying to be nuanced — just enough to let the UI show a red/yellow/green indicator or filter to "show me the negative reviews".
+- **`helpful_count`** — many sites surface this. Good for sorting to show the most useful reviews first.
+- **We don't scrape ALL reviews.** The extraction pipeline grabs the top 10-20 most helpful/recent reviews. This is enough for decision-making without ballooning storage or scraping costs.
+- **No user edits.** These are read-only records from external sources. Users discuss via the `comments` table instead.
+
+---
+
+### 6. `comments`
 
 Threaded discussion on a product.
 
@@ -245,6 +314,10 @@ create index idx_products_list_status on products(list_id, status);
 create index idx_list_members_user_id on list_members(user_id);
 create index idx_list_members_list_id on list_members(list_id);
 
+-- Customer reviews by product (with sentiment for filtering)
+create index idx_customer_reviews_product_id on customer_reviews(product_id);
+create index idx_customer_reviews_sentiment on customer_reviews(product_id, sentiment);
+
 -- Comments by product
 create index idx_comments_product_id on comments(product_id);
 
@@ -266,6 +339,7 @@ Supabase RLS policies control who sees what, enforced at the database level.
 | `lists` | Users can only see lists where they are a member (via `list_members`) |
 | `list_members` | Users can see members of lists they belong to; only owners can add/remove |
 | `products` | Users can see/add/edit products in lists they're a member of (editor+) |
+| `customer_reviews` | Same as products (read-only for all members; only system/AI writes) |
 | `comments` | Same as products; users can only edit/delete their own comments |
 | `votes` | Same as products; users can only modify their own votes |
 
@@ -291,6 +365,6 @@ Nothing in the current schema needs to change — these are additive tables.
 
 ## Open Questions
 
-1. **Should `price` support ranges?** Some products show "$499 - $699" depending on config. Could use `price_min`/`price_max` instead of a single `price`. Added complexity for an edge case — leaning towards single `price` for v1 and a `price_note` text field if needed.
-2. **Do we need a `product_images` table?** Currently just `image_url` (single image). Multiple images would need a separate table. For v1, one hero image feels sufficient since users can click through to the original URL.
-3. **Should votes be on lists too?** Currently only on products. List-level voting ("which project should we tackle first?") could be useful but feels like scope creep.
+1. **Do we need a `product_images` table?** Currently just `image_url` (single hero image). Multiple images would need a separate table. For v1, one image feels sufficient since users can click through to the original URL for galleries.
+2. **Should votes be on lists too?** Currently only on products. List-level voting ("which project should we tackle first?") could be useful but feels like scope creep for v1.
+3. **How many customer reviews to extract per product?** Leaning towards top 10-20 most helpful. More is better for AI summaries but costs more to scrape and store.
