@@ -477,3 +477,14 @@ New card animates in:
 - [ibelick — Bento Grid with CSS/Tailwind](https://dev.to/ibelick/creating-bento-grid-layouts-with-css-tailwind-css-26mo) — implementation tutorial
 
 ---
+
+## Page 3: List Detail (`/lists/[id]`)
+
+> **This page has its own dedicated spec file due to its size.**
+> See **[06a-page-list-detail.md](./06a-page-list-detail.md)** for the full design spec including:
+> - Card grid view + table view with toggle
+> - AI-suggested products (found by AI, not yet in user's list) with Add/Dismiss actions
+> - AI Expert Opinion panel
+> - All ASCII layouts, element breakdowns, animation specs, dark mode, responsive, and accessibility details
+
+---
