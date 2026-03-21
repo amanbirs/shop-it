@@ -40,6 +40,7 @@ create table public.profiles (
   email       text not null,
   name        text,
   avatar_url  text,
+  context     jsonb default '{}',  -- persistent user context for AI: room size, lifestyle, location, etc.
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
@@ -47,6 +48,9 @@ create table public.profiles (
 
 **Why `profiles` and not `users`?**
 Supabase manages `auth.users` internally. The convention is a `profiles` table in the `public` schema that mirrors auth users via a trigger. This gives us a place to store display names and avatars without touching the auth schema.
+
+**Why `context` is JSONB:**
+User context is things like `{"room_size": "12x14 ft", "family_size": 4, "city": "Mumbai", "climate": "hot and humid", "has_pets": true}`. The shape is completely unpredictable — depends on what purchases they're researching. JSONB lets users add whatever is relevant. This context is injected into Gemini prompts (extraction, expert opinion) so AI recommendations account for the user's situation. For example, an AC recommendation changes dramatically if the user says "12x14 room in Mumbai" vs "20x20 room in Shimla".
 
 ---
 
@@ -66,6 +70,7 @@ create table public.lists (
   budget_min  numeric(12,2),             -- e.g., 30000.00 (₹30K)
   budget_max  numeric(12,2),             -- e.g., 50000.00 (₹50K)
   purchase_by date,                      -- when do they need to decide/buy?
+  priorities  text[] default '{}',       -- what the user cares about, ordered: ["noise level", "energy efficiency", "easy to clean"]
 
   owner_id    uuid not null references public.profiles(id),
   created_at  timestamptz not null default now(),
@@ -80,6 +85,7 @@ create table public.lists (
 - **`status` vs `archived_at`** — we have both. `status` is the queryable flag (index-friendly), `archived_at` records when. Could drop one, but having both is cheap and useful.
 - **`budget_min` / `budget_max`** — budget context for the AI Expert Opinion feature. Without this, AI recommendations are generic ("best overall") rather than personalized ("best within your ₹30K-50K budget"). Currency is inherited from the products in the list (all INR by default).
 - **`purchase_by`** — a soft deadline. AI can factor in shipping times or sale end dates. The UI can show a countdown badge. A `date` (not `timestamptz`) because "by March 30" is precise enough — nobody needs hour-level purchase deadlines.
+- **`priorities`** — an ordered array of what the user cares about for *this specific purchase*. "noise level" matters for an AC list but not a TV list. Ordered so the AI knows what to weight most heavily. `text[]` rather than JSONB because these are simple labels, not structured data. The UI renders them as reorderable chips/tags. Injected into Gemini prompts alongside `profiles.context` — priorities are *what* to evaluate, context is *who* is evaluating.
 - **No `icon` or `color` field yet.** Tempted to add for UX polish, but keeping it minimal for v1. Easy to add later.
 
 ---

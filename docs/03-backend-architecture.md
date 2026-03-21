@@ -140,7 +140,9 @@ A Supabase Database Webhook fires on `INSERT` into `products` where `extraction_
 supabase/functions/ingest-product/index.ts
 
 - Receive { productId } from webhook payload
-- Fetch the product row (url, domain, list category)
+- Fetch the product row (url, domain)
+- Fetch list metadata (category, priorities)
+- Fetch adding user's profile.context
 - Update extraction_status → 'processing'
 - Call Firecrawl to scrape the URL → get page content (markdown)
 - Store raw response in raw_scraped_data
@@ -185,7 +187,12 @@ The extraction prompt needs to handle wildly different page structures. Firecraw
 The extraction prompt asks Gemini to return structured JSON. Key design:
 
 ```
-Input:  scraped page content (markdown) + product URL + list category (optional hint)
+Input:
+  - scraped page content (markdown)
+  - product URL
+  - list category (optional hint)
+  - list priorities (e.g. ["noise level", "energy efficiency"]) — guides what specs/pros/cons to emphasize
+  - user context (e.g. {room_size: "12x14", city: "Mumbai"}) — grounds the AI summary in the user's situation
 Output: JSON matching our product schema
 
 {
@@ -251,7 +258,8 @@ POST /api/lists/[listId]/expert-opinion
 ```
 - Authenticate user, verify list membership
 - Fetch all non-archived products in the list (with their extracted data)
-- Fetch list metadata (budget_min, budget_max, purchase_by, category)
+- Fetch list metadata (budget_min, budget_max, purchase_by, category, priorities)
+- Fetch requesting user's profile.context
 - Require at least 2 products (can't "compare" one product)
 ```
 
@@ -262,6 +270,8 @@ The prompt includes:
 - Budget constraints (if set)
 - Purchase deadline (if set)
 - List category (if set)
+- **User priorities** (e.g. ["noise level", "energy efficiency"]) — AI weights these in its comparison and verdict
+- **User context** (e.g. {room_size: "12x14", city: "Mumbai"}) — AI grounds recommendations in the user's situation
 - Instruction to return structured JSON
 
 ```
