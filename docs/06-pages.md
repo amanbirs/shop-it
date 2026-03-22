@@ -488,3 +488,16 @@ New card animates in:
 > - All ASCII layouts, element breakdowns, animation specs, dark mode, responsive, and accessibility details
 
 ---
+
+## Product Detail Sheet (opens from List Detail)
+
+> **This component has its own dedicated spec file due to its size.**
+> See **[06b-product-detail-sheet.md](./06b-product-detail-sheet.md)** for the full design spec including:
+> - Right sheet (desktop) + bottom sheet (mobile) layouts
+> - Accordion sections: AI Summary, Specs, Pros & Cons, Reviews
+> - Inline comment thread with Realtime updates
+> - Extraction in-progress and failed states
+> - Product-to-product navigation (click-to-swap + keyboard shortcuts)
+> - All ASCII layouts, element breakdowns, animation specs, dark mode, responsive, and accessibility details
+
+---
