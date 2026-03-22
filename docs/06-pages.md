@@ -501,3 +501,38 @@ New card animates in:
 > - All ASCII layouts, element breakdowns, animation specs, dark mode, responsive, and accessibility details
 
 ---
+
+## List Creation Flow (opens from Dashboard)
+
+> **This flow has its own dedicated spec file.**
+> See **[06c-list-creation-flow.md](./06c-list-creation-flow.md)** for the full design spec including:
+> - Dialog (desktop) + bottom sheet (mobile) layouts
+> - AI hype title generation with typewriter animation
+> - Progressive disclosure for optional fields (budget, deadline, description)
+> - All ASCII layouts, element breakdowns, animation specs, dark mode, responsive, and accessibility details
+
+---
+
+## Invite & Share Flow (opens from List Detail)
+
+> **This flow has its own dedicated spec file.**
+> See **[06d-invite-share-flow.md](./06d-invite-share-flow.md)** for the full design spec including:
+> - Email invite + copy link sharing
+> - Role management (owner/editor/viewer)
+> - Inline member list with pending invites
+> - Invite email design
+> - All ASCII layouts, element breakdowns, animation specs, dark mode, responsive, and accessibility details
+
+---
+
+## Global Shell & Layout (wraps all authenticated pages)
+
+> **This component has its own dedicated spec file.**
+> See **[06e-global-shell.md](./06e-global-shell.md)** for the full design spec including:
+> - Sidebar navigation (desktop, collapsible) + bottom tab bar (mobile)
+> - Header bar with command palette (⌘K), theme toggle, user menu
+> - Hamburger menu overlay (mobile)
+> - Page transition animations
+> - All ASCII layouts, element breakdowns, animation specs, dark mode, responsive, and accessibility details
+
+---
