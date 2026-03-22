@@ -20,6 +20,7 @@ All design and architecture specs live in `docs/system-guide/`. These are the so
 | — Invite & Share Flow | [`06d-invite-share-flow.md`](docs/system-guide/06d-invite-share-flow.md) | Email + link invites, role management, member list |
 | — Global Shell | [`06e-global-shell.md`](docs/system-guide/06e-global-shell.md) | Sidebar, header, command palette, bottom tabs, page transitions |
 | API Contracts | [`07-api-contracts.md`](docs/system-guide/07-api-contracts.md) | Server Action input/output schemas, Zod validators, error codes, Realtime channels |
+| Standards | [`08-standards.md`](docs/system-guide/08-standards.md) | TypeScript, React/Next.js, Tailwind, Supabase, testing, error handling, git, accessibility, performance conventions |
 
 ### Using these docs
 
