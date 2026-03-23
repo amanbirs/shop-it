@@ -2,20 +2,22 @@
 
 ## Checklist
 
-- [ ] Set up `next-themes` ThemeProvider in root layout
-- [ ] Build sidebar component (`components/layout/sidebar.tsx`)
-- [ ] Build header component (`components/layout/header.tsx`)
-- [ ] Build mobile bottom tab bar (`components/layout/mobile-nav.tsx`)
-- [ ] Build theme toggle (`components/common/theme-toggle.tsx`)
-- [ ] Build command palette skeleton (`components/common/command-menu.tsx`)
-- [ ] Build user avatar menu
-- [ ] Create authenticated layout (`app/(app)/layout.tsx`)
-- [ ] Create unauthenticated layout (`app/(auth)/layout.tsx`)
-- [ ] Implement sidebar collapse/expand with localStorage persistence
+- [x] Set up `next-themes` ThemeProvider in root layout (`app/layout.tsx`)
+- [x] Build sidebar component (`components/layout/sidebar.tsx`) — collapsible, emoji per category, owned/shared sections
+- [x] Build header component (`components/layout/header.tsx`) — command palette trigger, theme toggle, user dropdown
+- [x] Build mobile bottom tab bar (`components/layout/mobile-nav.tsx`) — Home/Lists/Settings tabs
+- [x] Build theme toggle (`components/common/theme-toggle.tsx`) — cycles light/dark/system
+- [x] Build command palette skeleton (`components/common/command-menu.tsx`) — Cmd+K, list search, actions
+- [x] Build user avatar menu (in header — Profile, Settings, Sign Out)
+- [x] Create authenticated layout (`app/(app)/layout.tsx`) — fetches lists + profile server-side
+- [x] Create unauthenticated layout (`app/(auth)/layout.tsx`)
+- [x] Build app shell wrapper (`components/layout/app-shell.tsx`) — wires sidebar, header, mobile nav, skip link
+- [x] Implement sidebar collapse/expand with localStorage persistence
 - [ ] Test: dark/light theme switching
 - [ ] Test: sidebar collapse persists across page loads
 - [ ] Test: mobile layout shows bottom tabs, hides sidebar
 - [ ] Test: keyboard shortcut (Cmd+K) opens command palette
+- **Note:** shadcn v4 uses Base UI (not Radix) — no `asChild` prop on triggers. Adapted components accordingly.
 
 ---
 

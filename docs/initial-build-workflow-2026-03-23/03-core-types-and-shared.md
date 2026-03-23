@@ -2,13 +2,17 @@
 
 ## Checklist
 
-- [ ] Define TypeScript types for all database entities
-- [ ] Create ActionResult type and error codes
-- [ ] Create all Zod validation schemas
-- [ ] Create shared utility functions (formatPrice, extractDomain, etc.)
-- [ ] Create constants file
-- [ ] Write tests for Zod schemas
-- [ ] Write tests for utility functions
+- [x] Define TypeScript types for all database entities (`lib/types/database.ts`)
+- [x] Create ActionResult type and error codes (`lib/types/actions.ts`)
+- [x] Create all Zod validation schemas (`lib/validators/` — lists, products, members, comments, ai)
+- [x] Create shared utility functions (`lib/utils.ts` — formatPrice, formatPriceRange, extractDomain, relativeTime)
+- [x] Create constants file (`lib/constants.ts`)
+- [x] Create auth helper (`lib/supabase/auth.ts` — getAuthenticatedUser)
+- [x] Create AI prompt stubs (`lib/ai/prompts.ts` — all 4 builders)
+- [x] Create Gemini client wrapper (`lib/ai/gemini.ts`)
+- [x] Write tests for Zod schemas (3 test files, all passing)
+- [x] Write tests for utility functions (`lib/utils.test.ts`, all passing)
+- **29 tests passing across 4 test files**
 
 ---
 

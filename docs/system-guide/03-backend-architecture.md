@@ -18,19 +18,20 @@ We use one **Supabase Edge Function** for the URL ingestion worker (scraping + e
 
 ## Supabase Client Setup
 
-Two clients, created via utility functions in `lib/supabase/`:
+Three clients, created via utility functions in `lib/supabase/`:
 
 ```
 lib/supabase/
-  server.ts    — createServerClient() for Server Components & Actions (uses cookies)
-  client.ts    — createBrowserClient() for client-side Realtime subscriptions
+  server.ts    — createServerClient() for Server Components & Actions (uses cookies, publishable key)
+  client.ts    — createBrowserClient() for client-side Realtime subscriptions (publishable key)
+  admin.ts     — createAdminClient() for AI writes that bypass RLS (secret key)
 ```
 
-The server client reads the user's session from cookies (Supabase Auth + Next.js middleware). All queries go through RLS — no `service_role` key in the app except for the ingestion pipeline (which writes AI-generated data as "system").
+The server client reads the user's session from cookies (Supabase Auth + Next.js proxy). All queries go through RLS — the publishable key (`pk_...`) is used. No secret key in the app except for the AI pipelines.
 
-For the Expert Opinion API route, we use a `service_role` client scoped to `lib/supabase/admin.ts`. This bypasses RLS intentionally — the AI is writing data that no single user "owns".
+For the Expert Opinion API route, we use the admin client from `lib/supabase/admin.ts` with the secret key (`sk_...`). This bypasses RLS intentionally — the AI is writing data that no single user "owns".
 
-The `ingest-product` Edge Function creates its own Supabase client using `Deno.env` (Supabase automatically injects the service role key into Edge Functions). It bypasses RLS to update product rows with extracted data.
+The `ingest-product` Edge Function creates its own Supabase client using `Deno.env` (Supabase automatically injects the secret key into Edge Functions). It bypasses RLS to update product rows with extracted data.
 
 ---
 
@@ -45,7 +46,7 @@ Supabase Auth with magic links (email OTP). No passwords.
 4. Middleware checks cookie on every request → redirects unauthenticated users to /login
 ```
 
-**Middleware** (`middleware.ts`): Refreshes the Supabase session on every request. Redirects unauthenticated users away from protected routes. Light — no DB calls, just token refresh.
+**Proxy** (`proxy.ts` — Next.js 16 renamed `middleware.ts` to `proxy.ts`): Refreshes the Supabase session on every request. Redirects unauthenticated users away from protected routes. Light — no DB calls, just token refresh. Session refresh helper lives in `lib/supabase/proxy.ts`.
 
 **Profile creation:** A Supabase database trigger (`on auth.users insert`) creates the `profiles` row automatically. The app never manually inserts into `profiles`.
 
@@ -358,9 +359,11 @@ app/
 
 lib/
   supabase/
-    server.ts                      # Server-side Supabase client
-    client.ts                      # Browser-side Supabase client
-    admin.ts                       # Service role client (AI writes)
+    server.ts                      # Server-side Supabase client (publishable key, cookies)
+    client.ts                      # Browser-side Supabase client (publishable key)
+    admin.ts                       # Admin client with secret key (bypasses RLS, AI writes)
+    proxy.ts                       # Session refresh helper (used by proxy.ts at root)
+    auth.ts                        # getAuthenticatedUser() helper for Server Actions
   actions/
     lists.ts                       # List CRUD actions
     products.ts                    # Product CRUD + shortlist/purchase + addProduct (insert)
@@ -379,7 +382,7 @@ supabase/
     ingest-product/index.ts        # Edge Function: scrape + extract worker
   migrations/                      # SQL migrations (schema, RLS, triggers)
 
-middleware.ts                      # Auth session refresh + route protection
+proxy.ts                           # Auth session refresh + route protection (Next.js 16)
 ```
 
 ---
@@ -388,19 +391,22 @@ middleware.ts                      # Auth session refresh + route protection
 
 ```
 # Supabase
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=          # server-only, for AI writes
+NEXT_PUBLIC_SUPABASE_URL=                    # Project URL (Settings > API)
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=        # Publishable API key (pk_...), client-safe, respects RLS
+SUPABASE_SECRET_KEY=                         # Secret API key (sk_...), server-only, bypasses RLS — for AI writes
+                                             # Falls back to SUPABASE_SERVICE_ROLE_KEY if set (legacy name)
 
 # AI
 GEMINI_API_KEY=
 
 # Scraping
-FIRECRAWL_API_KEY=                  # or JINA_API_KEY
+FIRECRAWL_API_KEY=
 
 # App
-NEXT_PUBLIC_APP_URL=                # for auth redirects
+NEXT_PUBLIC_APP_URL=                         # for auth redirects
 ```
+
+> **Key naming:** Supabase renamed `anon key` → `publishable key` (`pk_...`) and `service_role key` → `secret key` (`sk_...`). Our code uses the new names. The admin client (`lib/supabase/admin.ts`) accepts either `SUPABASE_SECRET_KEY` or the legacy `SUPABASE_SERVICE_ROLE_KEY`.
 
 ---
 
