@@ -41,6 +41,36 @@ export function extractDomain(url: string): string {
   }
 }
 
+const CATEGORY_EMOJI_MAP: Record<string, string> = {
+  tv: "📺", television: "📺",
+  laptop: "💻", computer: "💻",
+  phone: "📱", mobile: "📱",
+  headphone: "🎧", audio: "🎧", speaker: "🎧",
+  furniture: "🛋️", sofa: "🛋️", couch: "🛋️",
+  kitchen: "🍳", appliance: "🍳",
+  camera: "📷",
+  shoe: "👟", running: "👟",
+  house: "🏠", home: "🏠",
+  car: "🚗", vehicle: "🚗",
+  coffee: "☕", espresso: "☕",
+  ac: "❄️", "air conditioner": "❄️",
+  book: "📚",
+  game: "🎮", gaming: "🎮",
+  watch: "⌚",
+  bike: "🚲", cycle: "🚲",
+  baby: "👶", stroller: "👶",
+}
+
+/** Fallback emoji when AI-generated emoji is not available */
+export function getCategoryEmoji(category: string | null): string {
+  if (!category) return "📋"
+  const lower = category.toLowerCase()
+  for (const [key, emoji] of Object.entries(CATEGORY_EMOJI_MAP)) {
+    if (lower.includes(key)) return emoji
+  }
+  return "📦"
+}
+
 const MINUTE = 60
 const HOUR = 3600
 const DAY = 86400

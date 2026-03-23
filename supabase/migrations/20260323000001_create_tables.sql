@@ -1,6 +1,9 @@
 -- ShopIt Schema: Tables & Indexes
 -- Source of truth: docs/system-guide/02-data-model.md
 
+-- Required for gen_random_bytes() used in invite_tokens
+create extension if not exists pgcrypto with schema extensions;
+
 -- ============================================================
 -- 1. profiles
 -- ============================================================
@@ -30,6 +33,7 @@ create table public.lists (
   priorities  text[] default '{}',
   ai_comment      text,
   ai_title_edited boolean default false,
+  category_emoji  text default '📋',     -- AI-suggested emoji, fallback to deterministic mapping
   owner_id    uuid not null references public.profiles(id),
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
@@ -148,7 +152,7 @@ create table public.list_ai_opinions (
 -- ============================================================
 create table public.invite_tokens (
   id         uuid primary key default gen_random_uuid(),
-  token      text not null unique default encode(gen_random_bytes(32), 'hex'),
+  token      text not null unique default encode(extensions.gen_random_bytes(32), 'hex'),
   list_id    uuid not null references public.lists(id) on delete cascade,
   role       text not null default 'editor'
                check (role in ('editor', 'viewer')),

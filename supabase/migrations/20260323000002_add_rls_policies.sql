@@ -28,7 +28,8 @@ create policy "profiles_update" on public.profiles
 -- ============================================================
 create policy "lists_select" on public.lists
   for select using (
-    exists (
+    owner_id = auth.uid()
+    or exists (
       select 1 from public.list_members
       where list_members.list_id = lists.id
         and list_members.user_id = auth.uid()
@@ -49,47 +50,59 @@ create policy "lists_update" on public.lists
   );
 
 -- ============================================================
+-- Helper functions for list_members RLS (SECURITY DEFINER to bypass RLS
+-- and avoid infinite recursion when list_members policies query list_members)
+-- ============================================================
+create or replace function public.is_member_of_list(p_list_id uuid, p_user_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = ''
+stable
+as $$
+  select exists (
+    select 1 from public.list_members
+    where list_id = p_list_id and user_id = p_user_id
+  );
+$$;
+
+create or replace function public.is_owner_of_list(p_list_id uuid, p_user_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = ''
+stable
+as $$
+  select exists (
+    select 1 from public.list_members
+    where list_id = p_list_id and user_id = p_user_id and role = 'owner'
+  );
+$$;
+
+-- ============================================================
 -- list_members: visible to fellow members, only owners can manage
+-- Uses helper functions to avoid infinite recursion.
 -- ============================================================
 create policy "list_members_select" on public.list_members
   for select using (
-    exists (
-      select 1 from public.list_members as lm
-      where lm.list_id = list_members.list_id
-        and lm.user_id = auth.uid()
-    )
+    public.is_member_of_list(list_id, auth.uid())
   );
 
 -- Insert: either owner adding members, or self-creating the owner row on list creation
 create policy "list_members_insert" on public.list_members
   for insert with check (
-    exists (
-      select 1 from public.list_members as lm
-      where lm.list_id = list_members.list_id
-        and lm.user_id = auth.uid()
-        and lm.role = 'owner'
-    )
+    public.is_owner_of_list(list_id, auth.uid())
     or (user_id = auth.uid() and role = 'owner')
   );
 
 create policy "list_members_update" on public.list_members
   for update using (
-    exists (
-      select 1 from public.list_members as lm
-      where lm.list_id = list_members.list_id
-        and lm.user_id = auth.uid()
-        and lm.role = 'owner'
-    )
+    public.is_owner_of_list(list_id, auth.uid())
   );
 
 create policy "list_members_delete" on public.list_members
   for delete using (
-    exists (
-      select 1 from public.list_members as lm
-      where lm.list_id = list_members.list_id
-        and lm.user_id = auth.uid()
-        and lm.role = 'owner'
-    )
+    public.is_owner_of_list(list_id, auth.uid())
   );
 
 -- ============================================================

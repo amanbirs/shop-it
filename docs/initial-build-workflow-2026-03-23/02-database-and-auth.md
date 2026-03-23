@@ -5,7 +5,7 @@
 - [x] Write SQL migration: tables, indexes (`supabase/migrations/20260323000001_create_tables.sql`)
 - [x] Write SQL migration: RLS policies (`supabase/migrations/20260323000002_add_rls_policies.sql`)
 - [x] Write SQL migration: triggers (`supabase/migrations/20260323000003_triggers.sql`)
-- [ ] Deploy migrations to Supabase (`npx supabase db push`)
+- [x] Deploy migrations to Supabase (`npx supabase db push`) — required `pgcrypto` extension fix + DB reset
 - [ ] ~~Set up Database Webhook~~ (deferred to Phase 6 — Edge Function must exist first)
 - [x] Create Supabase server client (`lib/supabase/server.ts`) — uses publishable key
 - [x] Create Supabase browser client (`lib/supabase/client.ts`) — uses publishable key
@@ -16,7 +16,8 @@
 - [ ] Enable Realtime replication for products, comments, list_members (manual)
 - [ ] Configure Supabase Auth redirect URLs (manual)
 - [ ] Test: login via magic link end-to-end
-- [ ] Test: profile auto-created after first login
+- [x] Test: login via dev password (Supabase dashboard user + password login)
+- [x] Test: profile auto-created after first login (trigger working)
 - [x] Test: unauthenticated redirect to /login (proxy handles this)
 
 ---

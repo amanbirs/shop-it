@@ -49,19 +49,23 @@ ${params.scrapedContent}`
 }
 
 export function buildHypeTitlePrompt(category: string): string {
-  return `Generate a short, fun, slightly dramatic title for a purchase research list.
+  return `Generate a short, fun, slightly dramatic title AND a single emoji for a purchase research list.
 Category: ${category}
-Requirements:
-- Max 30 characters
-- Memorable and slightly playful
-- Don't use generic phrases like "Ultimate Guide"
-- One title only, no quotes
+
+Return JSON:
+{
+  "title": "string (max 30 characters, memorable, slightly playful, no quotes)",
+  "emoji": "single emoji that best represents this category"
+}
+
 Examples:
-  "TV" → "The Great TV Showdown"
-  "running shoes" → "Sole Search 2026"
-  "coffee machine" → "Espresso Yourself"
-  "sofa" → "Operation: Dream Couch"
-  "air conditioner" → "The Big Chill"`
+  "TV" → {"title": "The Great TV Showdown", "emoji": "📺"}
+  "running shoes" → {"title": "Sole Search 2026", "emoji": "👟"}
+  "coffee machine" → {"title": "Espresso Yourself", "emoji": "☕"}
+  "sofa" → {"title": "Operation: Dream Couch", "emoji": "🛋️"}
+  "air conditioner" → {"title": "The Big Chill", "emoji": "❄️"}
+  "headphones" → {"title": "Audio Quest 2026", "emoji": "🎧"}
+  "laptop" → {"title": "The Laptop Showdown", "emoji": "💻"}`
 }
 
 export function buildAiCommentPrompt(params: {

@@ -4,13 +4,14 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ChevronLeft, ChevronRight, Plus, Settings } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, getCategoryEmoji } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
 type SidebarList = {
   id: string
   name: string
   category: string | null
+  category_emoji?: string
   role: string
 }
 
@@ -18,22 +19,6 @@ type SidebarProps = {
   ownedLists: SidebarList[]
   sharedLists: SidebarList[]
   onCreateList?: () => void
-}
-
-function getCategoryEmoji(category: string | null): string {
-  if (!category) return "📋"
-  const lower = category.toLowerCase()
-  if (lower.includes("tv") || lower.includes("television")) return "📺"
-  if (lower.includes("laptop") || lower.includes("computer")) return "💻"
-  if (lower.includes("phone") || lower.includes("mobile")) return "📱"
-  if (lower.includes("headphone") || lower.includes("audio") || lower.includes("speaker")) return "🎧"
-  if (lower.includes("furniture") || lower.includes("sofa") || lower.includes("couch")) return "🛋️"
-  if (lower.includes("kitchen") || lower.includes("appliance")) return "🍳"
-  if (lower.includes("camera")) return "📷"
-  if (lower.includes("shoe") || lower.includes("running")) return "👟"
-  if (lower.includes("house") || lower.includes("home")) return "🏠"
-  if (lower.includes("car") || lower.includes("vehicle")) return "🚗"
-  return "📦"
 }
 
 export function Sidebar({ ownedLists, sharedLists, onCreateList }: SidebarProps) {
@@ -88,7 +73,7 @@ export function Sidebar({ ownedLists, sharedLists, onCreateList }: SidebarProps)
           </div>
 
           {ownedLists.map((list) => {
-            const emoji = getCategoryEmoji(list.category)
+            const emoji = list.category_emoji || getCategoryEmoji(list.category)
             const isActive = pathname === `/lists/${list.id}`
             return (
               <Link

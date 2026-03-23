@@ -22,6 +22,7 @@ export type List = {
   priorities: string[]
   ai_comment: string | null
   ai_title_edited: boolean
+  category_emoji: string
   owner_id: string
   created_at: string
   updated_at: string

@@ -24,19 +24,21 @@ export default async function AppLayout({
   // Fetch lists the user is a member of
   const { data: memberships } = await supabase
     .from("list_members")
-    .select("role, lists(id, name, category)")
+    .select("role, lists(id, name, category, category_emoji)")
     .eq("user_id", user.id)
 
   const ownedLists: Array<{
     id: string
     name: string
     category: string | null
+    category_emoji?: string
     role: string
   }> = []
   const sharedLists: Array<{
     id: string
     name: string
     category: string | null
+    category_emoji?: string
     role: string
   }> = []
 
@@ -46,6 +48,7 @@ export default async function AppLayout({
         id: string
         name: string
         category: string | null
+        category_emoji?: string
       } | null
       if (!list) continue
       const item = { ...list, role: m.role }

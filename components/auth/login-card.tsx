@@ -27,10 +27,12 @@ const fadeUp = {
 
 export function LoginCard() {
   const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [state, setState] = useState<"email" | "sent">("email")
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [cooldown, setCooldown] = useState(0)
+  const [showDevLogin, setShowDevLogin] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,6 +53,26 @@ export function LoginCard() {
       }
 
       setState("sent")
+    })
+  }
+
+  const handleDevLogin = (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+
+    startTransition(async () => {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) {
+        setError(error.message)
+        return
+      }
+
+      window.location.href = "/"
     })
   }
 
@@ -159,6 +181,42 @@ export function LoginCard() {
                     Apple
                   </Button>
                 </motion.div>
+
+                {/* Dev password login — remove before production */}
+                {process.env.NODE_ENV === "development" && (
+                  <motion.div variants={fadeUp} className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowDevLogin(!showDevLogin)}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors w-full text-center"
+                    >
+                      {showDevLogin ? "Hide" : "Dev"} password login
+                    </button>
+                    {showDevLogin && (
+                      <form onSubmit={handleDevLogin} className="space-y-2">
+                        <Input
+                          type="password"
+                          placeholder="Password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="text-sm"
+                        />
+                        <Button
+                          type="submit"
+                          variant="outline"
+                          className="w-full text-sm"
+                          disabled={isPending || !email || !password}
+                        >
+                          {isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            "Sign in with password"
+                          )}
+                        </Button>
+                      </form>
+                    )}
+                  </motion.div>
+                )}
               </motion.div>
             </motion.div>
           ) : (
