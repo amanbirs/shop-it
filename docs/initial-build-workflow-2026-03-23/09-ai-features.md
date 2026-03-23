@@ -2,18 +2,21 @@
 
 ## Checklist
 
-- [ ] Build Server Action: `generateHypeTitle`
-- [ ] Build AI hype title prompt template
-- [ ] Wire AI title generation into Create List dialog (typewriter animation)
-- [ ] Build AI comment bubble generation logic
-- [ ] Build AI comment prompt template
-- [ ] Wire AI comment into list card and list header
-- [ ] Build Expert Opinion API route (`app/api/lists/[listId]/expert-opinion/route.ts`)
-- [ ] Build Expert Opinion prompt template
-- [ ] Build Expert Opinion card (`components/ai/expert-opinion-card.tsx`)
-- [ ] Build Expert Opinion CTA + staleness banner (`components/ai/expert-opinion-cta.tsx`)
-- [ ] Build AI verdict badge (`components/ai/ai-verdict-badge.tsx`)
-- [ ] Build AI summary section (`components/ai/ai-summary-section.tsx`)
+- [x] Build Server Action: `generateHypeTitle` + `regenerateAiComment` (`lib/actions/ai.ts`)
+- [x] Build AI hype title prompt — returns JSON with `{ title, emoji }` (`lib/ai/prompts.ts`)
+- [x] Wire AI title generation into Create List dialog — debounced 300ms, auto-fills name + emoji
+- [x] Build AI comment bubble generation logic — `regenerateAiComment` with fallback pool
+- [x] Build AI comment prompt template (`lib/ai/prompts.ts`)
+- [x] AI comment displayed on list cards + list header (already wired from Phase 5)
+- [x] Build Expert Opinion API route (`app/api/lists/[listId]/expert-opinion/route.ts`) — uses admin client for upsert
+- [x] Build Expert Opinion prompt template (`lib/ai/prompts.ts`)
+- [x] Build Expert Opinion card (`components/ai/expert-opinion-card.tsx`) — top pick, value pick, comparison, verdict
+- [x] Build Expert Opinion CTA + staleness banner (`components/ai/expert-opinion-cta.tsx`)
+- [x] Add `category_emoji` to createListSchema and createList action
+- [ ] Build AI verdict badge (using inline Badge in product card for now)
+- [ ] Build AI summary section (using product detail sheet accordion for now)
+- [ ] Wire Expert Opinion into list detail page
+- [ ] Wire `regenerateAiComment` calls into product mutation actions
 - [ ] Test: creating a list generates a hype title
 - [ ] Test: adding/removing products regenerates AI comment
 - [ ] Test: Expert Opinion generates with 2+ products

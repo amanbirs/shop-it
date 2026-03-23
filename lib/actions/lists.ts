@@ -38,6 +38,7 @@ export async function createList(
       .insert({
         name: parsed.data.name,
         category: parsed.data.category ?? null,
+        category_emoji: parsed.data.category_emoji ?? "📋",
         description: parsed.data.description ?? null,
         budget_min: parsed.data.budget_min ?? null,
         budget_max: parsed.data.budget_max ?? null,

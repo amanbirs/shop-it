@@ -4,6 +4,7 @@ export const createListSchema = z
   .object({
     name: z.string().min(1, "Name is required").max(200),
     category: z.string().max(100).optional(),
+    category_emoji: z.string().max(10).optional(),
     description: z.string().max(1000).optional(),
     budget_min: z.number().positive("Must be positive").optional(),
     budget_max: z.number().positive("Must be positive").optional(),

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Loader2, Check, Sparkles, ChevronDown } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { createList } from "@/lib/actions/lists"
+import { generateHypeTitle } from "@/lib/actions/ai"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -30,9 +31,11 @@ export function CreateListDialog({ open, onOpenChange }: CreateListDialogProps) 
   const [purchaseBy, setPurchaseBy] = useState("")
   const [showOptional, setShowOptional] = useState(false)
 
-  // AI title placeholder state (wired in Phase 9)
+  // AI title generation
   const [aiTitle, setAiTitle] = useState<string | null>(null)
+  const [aiEmoji, setAiEmoji] = useState<string | null>(null)
   const [aiTitleLoading, setAiTitleLoading] = useState(false)
+  const [debounceTimer, setDebounceTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
 
   // Submit state
   const [submitState, setSubmitState] = useState<"idle" | "loading" | "success" | "error">("idle")
@@ -40,18 +43,29 @@ export function CreateListDialog({ open, onOpenChange }: CreateListDialogProps) 
 
   const handleCategoryChange = (value: string) => {
     setCategory(value)
-    // AI title stub — Phase 9 will replace with real Gemini call
+
+    // Clear previous debounce
+    if (debounceTimer) clearTimeout(debounceTimer)
+
     if (value.trim().length > 1) {
       setAiTitleLoading(true)
-      // Simulated debounce — Phase 9 replaces with generateHypeTitle
-      const timeout = setTimeout(() => {
+      const timer = setTimeout(async () => {
+        const result = await generateHypeTitle({ category: value.trim() })
         setAiTitleLoading(false)
-        // No AI title for now — user types their own name
-        setAiTitle(null)
+        if (result.success) {
+          setAiTitle(result.data.title)
+          setAiEmoji(result.data.emoji)
+          // Auto-fill name if user hasn't typed one
+          if (!listName) setListName(result.data.title)
+        } else {
+          setAiTitle(null)
+          setAiEmoji(null)
+        }
       }, 300)
-      return () => clearTimeout(timeout)
+      setDebounceTimer(timer)
     } else {
       setAiTitle(null)
+      setAiEmoji(null)
       setAiTitleLoading(false)
     }
   }
@@ -65,6 +79,7 @@ export function CreateListDialog({ open, onOpenChange }: CreateListDialogProps) 
       const result = await createList({
         name: listName || aiTitle || category,
         category: category || undefined,
+        category_emoji: aiEmoji || undefined,
         description: description || undefined,
         budget_min: budgetMin ? Number(budgetMin) : undefined,
         budget_max: budgetMax ? Number(budgetMax) : undefined,
