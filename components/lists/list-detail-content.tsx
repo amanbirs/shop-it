@@ -6,6 +6,7 @@ import { useRealtimeProducts } from "@/hooks/use-realtime-products"
 import { retryExtraction } from "@/lib/actions/products"
 import { AddProductForm } from "@/components/products/add-product-form"
 import { ProductGrid } from "@/components/products/product-grid"
+import { ProductDetailSheet } from "@/components/products/product-detail-sheet"
 import { ListFilters, type FilterValue } from "@/components/lists/list-filters"
 import { EmptyState } from "@/components/common/empty-state"
 import type { Product } from "@/lib/types/database"
@@ -22,6 +23,7 @@ export function ListDetailContent({
   userRole,
 }: ListDetailContentProps) {
   const [filter, setFilter] = useState<FilterValue>("all")
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [, startTransition] = useTransition()
 
   // Subscribe to Realtime updates for this list's products
@@ -53,6 +55,11 @@ export function ListDetailContent({
     })
   }
 
+  // Keep selected product in sync with latest data (Realtime updates)
+  const currentProduct = selectedProduct
+    ? products.find((p) => p.id === selectedProduct.id) ?? selectedProduct
+    : null
+
   return (
     <div className="space-y-4">
       {/* Add product form */}
@@ -67,6 +74,7 @@ export function ListDetailContent({
       {filtered.length > 0 ? (
         <ProductGrid
           products={filtered}
+          onProductClick={setSelectedProduct}
           onRetryExtraction={handleRetry}
         />
       ) : products.length === 0 ? (
@@ -84,6 +92,21 @@ export function ListDetailContent({
           description="Try a different filter."
         />
       )}
+
+      {/* Product detail sheet */}
+      <ProductDetailSheet
+        product={currentProduct}
+        open={!!selectedProduct}
+        onOpenChange={(open) => {
+          if (!open) setSelectedProduct(null)
+        }}
+        canEdit={canEdit}
+        onRetryExtraction={
+          currentProduct
+            ? () => handleRetry(currentProduct.id)
+            : undefined
+        }
+      />
     </div>
   )
 }
