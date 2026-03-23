@@ -2,20 +2,21 @@
 
 ## Checklist
 
-- [ ] Build Server Actions: `toggleShortlist`, `markPurchased`
+- [x] Build Server Actions: `toggleShortlist`, `markPurchased` (in `lib/actions/products.ts`, built in Phase 6)
 - [ ] Write tests for shortlist/purchase actions
-- [ ] Build product detail sheet (`components/products/product-detail-sheet.tsx`)
-- [ ] Build product specs table (`components/products/product-specs.tsx`)
-- [ ] Build product reviews section (`components/products/product-reviews.tsx`)
-- [ ] Build product pros/cons list (`components/products/product-pros-cons.tsx`)
-- [ ] Build product status badge (`components/products/product-status-badge.tsx`)
-- [ ] Build product actions bar (`components/products/product-actions.tsx`)
-- [ ] Build shortlist button with optimistic UI (`components/products/shortlist-button.tsx`)
-- [ ] Build price display component (`components/common/price-display.tsx`)
-- [ ] Build domain badge component (`components/common/domain-badge.tsx`)
-- [ ] Build optimistic action hook (`hooks/use-optimistic-action.ts`)
-- [ ] Wire product card click → opens detail sheet
-- [ ] Test: shortlist toggle works with optimistic UI
+- [x] Build product detail sheet (`components/products/product-detail-sheet.tsx`) — right sheet desktop, accordion sections
+- [x] Build product specs table (`components/products/product-specs.tsx`) — renders JSONB keys as Title Case
+- [x] Build product reviews section (`components/products/product-reviews.tsx`) — AI summary + scraped excerpts with stars
+- [x] Build product pros/cons list (`components/products/product-pros-cons.tsx`) — green checks, red X marks
+- [x] Build product actions bar (`components/products/product-actions.tsx`) — shortlist/purchased toggles + archive with confirmation
+- [x] Build price display component (`components/common/price-display.tsx`) — built in Phase 6
+- [x] Build domain badge component (`components/common/domain-badge.tsx`) — built in Phase 6
+- [x] Wire product card click → opens detail sheet (via list-detail-content state)
+- [x] Detail sheet syncs with Realtime (selected product refreshes from latest data)
+- [ ] Build optimistic action hook (`hooks/use-optimistic-action.ts`) — deferred, using useTransition for now
+- [ ] Build separate shortlist button with animation — deferred, using action bar for now
+- [ ] Build product status badge — using inline Badge in product card for now
+- [ ] Test: shortlist toggle works
 - [ ] Test: mark purchased sets purchased_at
 - [ ] Test: detail sheet shows all product data sections
 - [ ] Test: product-to-product navigation in sheet

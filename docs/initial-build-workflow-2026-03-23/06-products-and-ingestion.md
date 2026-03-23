@@ -2,21 +2,25 @@
 
 ## Checklist
 
-- [ ] Build Server Actions: `addProduct`, `updateProduct`, `archiveProduct`, `retryExtraction`
+- [x] Build Server Actions: `addProduct`, `toggleShortlist`, `markPurchased`, `archiveProduct`, `retryExtraction` (`lib/actions/products.ts`)
 - [ ] Write tests for product Server Actions
-- [ ] Build the Supabase Edge Function: `ingest-product`
-- [ ] Create Gemini extraction prompt (`lib/ai/prompts.ts`)
-- [ ] Build add-product form (`components/products/add-product-form.tsx`)
-- [ ] Build product card component (`components/products/product-card.tsx`)
-- [ ] Build product card skeleton (`components/products/product-card-skeleton.tsx`)
-- [ ] Build product grid (`components/products/product-grid.tsx`)
-- [ ] Build extraction progress indicator (`components/products/extraction-progress.tsx`)
-- [ ] Build Realtime hook: `useRealtimeProducts`
-- [ ] Build list detail page (`app/(app)/lists/[listId]/page.tsx`)
-- [ ] Build list header (`components/lists/list-header.tsx`)
-- [ ] Build list filters (`components/lists/list-filters.tsx`)
-- [ ] Deploy Edge Function to Supabase
+- [x] Build the Supabase Edge Function: `ingest-product` (505 lines — Firecrawl + Gemini pipeline)
+- [x] Create Gemini extraction prompt (`lib/ai/prompts.ts` — already done in Phase 3)
+- [x] Build add-product form (`components/products/add-product-form.tsx`)
+- [x] Build product card component (`components/products/product-card.tsx`) — with skeleton/failed/completed states
+- [x] Build product card skeleton (`components/products/product-card-skeleton.tsx`)
+- [x] Build product grid (`components/products/product-grid.tsx`) — responsive 1/2/3 columns
+- [x] Build extraction progress indicator (`components/products/extraction-progress.tsx`)
+- [x] Build Realtime hook: `useRealtimeProducts` (`hooks/use-realtime-products.ts`)
+- [x] Build list detail page (`app/(app)/lists/[listId]/page.tsx`) — Server Component
+- [x] Build list header (`components/lists/list-header.tsx`) — budget, deadline, priorities, members
+- [x] Build list filters (`components/lists/list-filters.tsx`) — All/Shortlisted/Purchased
+- [x] Build list detail content wrapper (`components/lists/list-detail-content.tsx`)
+- [x] Exclude `supabase/functions` from tsconfig (Deno imports)
+- [ ] Deploy Edge Function to Supabase (`npx supabase functions deploy ingest-product`)
+- [ ] Set Edge Function secrets (`npx supabase secrets set GEMINI_API_KEY=... FIRECRAWL_API_KEY=...`)
 - [ ] Set up Database Webhook to trigger Edge Function on product INSERT (manual)
+- [ ] Configure `next.config.ts` `images.remotePatterns` for product image domains
 - [ ] Test: paste URL → skeleton card → extraction → populated card
 - [ ] Test: failed extraction shows error with retry button
 - [ ] Test: Realtime updates when another user adds a product
