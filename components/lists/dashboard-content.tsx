@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { motion } from "framer-motion"
 import { Plus } from "lucide-react"
 import { ListCard } from "@/components/lists/list-card"
 import { CreateListDialog } from "@/components/lists/create-list-dialog"
@@ -23,6 +24,23 @@ type ListData = {
 
 type DashboardContentProps = {
   lists: ListData[]
+}
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 12, scale: 0.97 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.35, ease: [0.25, 0.4, 0, 1] as const },
+  },
+}
+
+const gridVariants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.06 },
+  },
 }
 
 export function DashboardContent({ lists }: DashboardContentProps) {
@@ -53,25 +71,34 @@ export function DashboardContent({ lists }: DashboardContentProps) {
         </Button>
       </div>
 
-      {/* Card grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Card grid with stagger animation */}
+      <motion.div
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+        variants={gridVariants}
+        initial="hidden"
+        animate="visible"
+      >
         {lists.map((list) => (
-          <ListCard key={list.id} list={list} />
+          <motion.div key={list.id} variants={cardVariants}>
+            <ListCard list={list} />
+          </motion.div>
         ))}
 
         {/* New list dashed card */}
-        <button
-          onClick={() => setCreateOpen(true)}
-          className="block"
-        >
-          <Card className="h-full border-dashed border-2 border-muted-foreground/30 hover:border-muted-foreground/60 hover:bg-accent/50 transition-all cursor-pointer">
-            <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground">
-              <Plus className="h-8 w-8 mb-2" />
-              <span className="text-sm font-medium">New List</span>
-            </CardContent>
-          </Card>
-        </button>
-      </div>
+        <motion.div variants={cardVariants}>
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="block w-full h-full"
+          >
+            <Card className="h-full border-dashed border-2 border-muted-foreground/30 hover:border-muted-foreground/60 hover:bg-accent/50 transition-all cursor-pointer">
+              <CardContent className="flex flex-col items-center justify-center p-8 text-muted-foreground">
+                <Plus className="h-8 w-8 mb-2" />
+                <span className="text-sm font-medium">New List</span>
+              </CardContent>
+            </Card>
+          </button>
+        </motion.div>
+      </motion.div>
 
       <CreateListDialog open={createOpen} onOpenChange={setCreateOpen} />
     </div>
