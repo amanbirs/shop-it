@@ -13,10 +13,10 @@
 - [x] Build Expert Opinion card (`components/ai/expert-opinion-card.tsx`) — top pick, value pick, comparison, verdict
 - [x] Build Expert Opinion CTA + staleness banner (`components/ai/expert-opinion-cta.tsx`)
 - [x] Add `category_emoji` to createListSchema and createList action
-- [ ] Build AI verdict badge (using inline Badge in product card for now)
-- [ ] Build AI summary section (using product detail sheet accordion for now)
-- [ ] Wire Expert Opinion into list detail page
-- [ ] Wire `regenerateAiComment` calls into product mutation actions
+- [x] AI verdict displayed as inline Badge on product card (no separate component needed)
+- [x] AI summary displayed in product detail panel accordion (no separate component needed)
+- [x] Wire Expert Opinion into list detail page (card + CTA below product grid)
+- [x] Wire `regenerateAiComment` into addProduct, toggleShortlist, markPurchased, archiveProduct
 - [ ] Test: creating a list generates a hype title
 - [ ] Test: adding/removing products regenerates AI comment
 - [ ] Test: Expert Opinion generates with 2+ products
