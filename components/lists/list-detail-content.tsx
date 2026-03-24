@@ -59,10 +59,10 @@ export function ListDetailContent({
     : null
 
   return (
-    <div className="flex -mx-6 -mb-6 h-[calc(100vh-theme(spacing.12)-theme(spacing.6))]">
+    <div className="flex -mx-6 h-full">
       {/* Left panel: product grid — independent scroll */}
       <div
-        className={`flex-1 min-w-0 overflow-y-auto p-6 ${
+        className={`flex-1 min-w-0 overflow-y-auto px-6 pb-6 ${
           currentProduct ? "lg:w-[60%] lg:flex-none" : ""
         }`}
       >

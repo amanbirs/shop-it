@@ -30,7 +30,7 @@ export function DashboardContent({ lists }: DashboardContentProps) {
 
   if (lists.length === 0) {
     return (
-      <div className="p-6">
+      <div className="p-6 h-full overflow-y-auto">
         <EmptyState
           title="No lists yet"
           description="Start your first purchase decision. Paste a product URL and let ShopIt do the research."
@@ -43,7 +43,7 @@ export function DashboardContent({ lists }: DashboardContentProps) {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 h-full overflow-y-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Your Lists</h1>

@@ -72,7 +72,7 @@ export function AppShell({
           />
           <main
             id="main-content"
-            className="flex-1 overflow-y-auto pb-14 lg:pb-0"
+            className="flex-1 overflow-hidden pb-14 lg:pb-0"
           >
             {children}
           </main>

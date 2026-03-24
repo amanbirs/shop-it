@@ -54,17 +54,21 @@ export default async function ListDetailPage({
     .order("created_at", { ascending: false })
 
   return (
-    <div className="p-6 space-y-6">
-      <ListHeader
-        list={list}
-        memberCount={memberCount ?? 1}
-        userRole={membership.role}
-      />
-      <ListDetailContent
-        listId={listId}
-        products={(products as Product[]) ?? []}
-        userRole={membership.role}
-      />
+    <div className="flex flex-col h-full">
+      <div className="px-6 pt-6 pb-4 shrink-0">
+        <ListHeader
+          list={list}
+          memberCount={memberCount ?? 1}
+          userRole={membership.role}
+        />
+      </div>
+      <div className="flex-1 min-h-0 px-6">
+        <ListDetailContent
+          listId={listId}
+          products={(products as Product[]) ?? []}
+          userRole={membership.role}
+        />
+      </div>
     </div>
   )
 }
