@@ -17,10 +17,10 @@
 - [x] Build list filters (`components/lists/list-filters.tsx`) — All/Shortlisted/Purchased
 - [x] Build list detail content wrapper (`components/lists/list-detail-content.tsx`)
 - [x] Exclude `supabase/functions` from tsconfig (Deno imports)
-- [ ] Deploy Edge Function to Supabase (`npx supabase functions deploy ingest-product`)
-- [ ] Set Edge Function secrets (`npx supabase secrets set GEMINI_API_KEY=... FIRECRAWL_API_KEY=...`)
-- [ ] Set up Database Webhook to trigger Edge Function on product INSERT (manual)
-- [ ] Configure `next.config.ts` `images.remotePatterns` for product image domains
+- [x] Deploy Edge Function to Supabase
+- [x] Set Edge Function secrets (GEMINI_API_KEY, FIRECRAWL_API_KEY)
+- [x] Set up Database Webhook (products INSERT → ingest-product)
+- [x] Configure `next.config.ts` `images.remotePatterns` — allows all HTTPS domains
 - [ ] Test: paste URL → skeleton card → extraction → populated card
 - [ ] Test: failed extraction shows error with retry button
 - [ ] Test: Realtime updates when another user adds a product

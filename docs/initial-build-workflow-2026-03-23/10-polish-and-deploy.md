@@ -13,7 +13,7 @@
 - [x] Invite acceptance route (`app/(auth)/invite/[token]/route.ts`)
 - [x] List settings page placeholder (`app/(app)/lists/[listId]/settings/page.tsx`)
 - [x] Profile page placeholder (`app/(app)/profile/page.tsx`)
-- [ ] Login stagger animation — already implemented in Phase 2
+- [x] Login stagger animation (implemented in Phase 2)
 - [ ] Flashlight hover effect on dashboard cards
 - [ ] `prefers-reduced-motion` support
 - [ ] Update Supabase redirect URLs for production (manual)

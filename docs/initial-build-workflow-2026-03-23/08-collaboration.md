@@ -16,8 +16,8 @@
 - [x] Build comment input (`components/collaboration/comment-input.tsx`) — Enter to submit, reply mode
 - [x] Comment Realtime subscription (in comment-thread.tsx)
 - [ ] Build dedicated `useRealtimeMembers` hook — deferred, using page refresh for now
-- [ ] Build invite acceptance route (`app/(auth)/invite/[token]/route.ts`)
-- [ ] Build list settings page (`app/(app)/lists/[listId]/settings/page.tsx`)
+- [x] Build invite acceptance route (`app/(auth)/invite/[token]/route.ts`) — built in Phase 10
+- [x] Build list settings page placeholder (`app/(app)/lists/[listId]/settings/page.tsx`) — built in Phase 10
 - [ ] Test: invite a member → they receive email → they join → appear in member list
 - [ ] Test: role changes propagate
 - [ ] Test: comments appear in Realtime for other users

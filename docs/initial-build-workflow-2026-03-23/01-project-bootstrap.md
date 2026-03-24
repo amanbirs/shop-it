@@ -7,7 +7,7 @@
 - [x] Initialize shadcn/ui (22 components installed)
 - [x] Set up Tailwind CSS 4 with semantic tokens (shortlisted, purchased, ai-accent, extraction-pending)
 - [x] Create Supabase project (manual) — project name: `shop-it`
-- [ ] Get API keys: Gemini, Firecrawl (manual)
+- [x] Get API keys: Gemini, Firecrawl
 - [x] Create `.env.local` with all environment variables
 - [ ] Create Vercel project and link repo (manual)
 - [x] Verify `npm run dev` serves the app

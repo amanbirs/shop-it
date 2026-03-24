@@ -13,8 +13,8 @@
 - [x] Build auth proxy (`proxy.ts` + `lib/supabase/proxy.ts`) — Next.js 16 uses proxy.ts, not middleware.ts
 - [x] Build login page (`app/(auth)/login/page.tsx`) — glassmorphic card, dot grid, stagger animation
 - [x] Build auth callback route (`app/(auth)/auth/callback/route.ts`)
-- [ ] Enable Realtime replication for products, comments, list_members (manual)
-- [ ] Configure Supabase Auth redirect URLs (manual)
+- [x] Enable Realtime replication via `alter publication supabase_realtime add table` for products, comments, list_members
+- [x] Configure Supabase Auth redirect URLs
 - [ ] Test: login via magic link end-to-end
 - [x] Test: login via dev password (Supabase dashboard user + password login)
 - [x] Test: profile auto-created after first login (trigger working)
