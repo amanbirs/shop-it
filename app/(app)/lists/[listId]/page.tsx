@@ -2,7 +2,8 @@ import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { ListHeader } from "@/components/lists/list-header"
 import { ListDetailContent } from "@/components/lists/list-detail-content"
-import type { Product, ListAiOpinion } from "@/lib/types/database"
+import { ContextQuestionPopup } from "@/components/ai/context-question-popup"
+import type { Product, ListAiOpinion, ContextQuestion } from "@/lib/types/database"
 
 export default async function ListDetailPage({
   params,
@@ -18,7 +19,7 @@ export default async function ListDetailPage({
   if (!user) notFound()
 
   // Parallel fetches for performance
-  const [listResult, membershipResult, memberCountResult, productsResult, opinionResult] =
+  const [listResult, membershipResult, memberCountResult, productsResult, opinionResult, questionsResult] =
     await Promise.all([
       supabase
         .from("lists")
@@ -49,6 +50,11 @@ export default async function ListDetailPage({
         .select("*")
         .eq("list_id", listId)
         .single(),
+      supabase
+        .from("context_questions")
+        .select("*")
+        .eq("list_id", listId)
+        .order("created_at", { ascending: true }),
     ])
 
   const list = listResult.data
@@ -82,6 +88,11 @@ export default async function ListDetailPage({
           productNames={productNames}
         />
       </div>
+
+      {/* Context question popup */}
+      <ContextQuestionPopup
+        questions={(questionsResult.data as ContextQuestion[]) ?? []}
+      />
     </div>
   )
 }

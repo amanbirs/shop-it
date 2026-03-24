@@ -150,3 +150,59 @@ Return JSON:
   "verdict": "Final recommendation paragraph"
 }`
 }
+
+export function buildContextQuestionsPrompt(params: {
+  products: Array<{
+    title: string | null
+    brand: string | null
+    price_min: number | null
+    price_max: number | null
+    category?: string | null
+    specs: Record<string, string>
+  }>
+  listCategory: string | null
+  existingAnswers: Array<{ question: string; answer: string }>
+  existingPendingQuestions: string[]
+}): string {
+  const productSummary = params.products
+    .map(
+      (p) =>
+        `- ${p.title ?? "Unknown"} (${p.brand ?? "?"}) — ${p.price_min ?? "?"} | Specs: ${JSON.stringify(p.specs)}`
+    )
+    .join("\n")
+
+  const existingContext = params.existingAnswers.length
+    ? `\nAlready known about the user:\n${params.existingAnswers.map((a) => `- Q: ${a.question} → A: ${a.answer}`).join("\n")}`
+    : ""
+
+  const pendingQuestions = params.existingPendingQuestions.length
+    ? `\nQuestions already asked (do NOT repeat):\n${params.existingPendingQuestions.map((q) => `- ${q}`).join("\n")}`
+    : ""
+
+  return `You are helping a user research a purchase decision. Based on the products they've added to their list, generate 1-3 short, specific questions that would help you give better recommendations.
+
+Category: ${params.listCategory ?? "general"}
+
+Products in the list:
+${productSummary}
+${existingContext}
+${pendingQuestions}
+
+Rules:
+- Questions should be triggered by PATTERNS in the product data (price range variance → ask about budget sensitivity; multiple speakers → ask about audio quality importance; mixed brands → ask about brand loyalty)
+- Each question should be 1 sentence, conversational, specific to THESE products
+- Do NOT ask generic questions like "what are you looking for?" — be specific based on the data
+- Do NOT repeat questions already asked
+- If you have enough context already, return an empty array
+- Return 0-3 questions
+
+Return JSON:
+{
+  "questions": [
+    "How important is Dolby Vision support for your TV setup?",
+    "Will this be the primary speaker or part of a multi-room setup?"
+  ]
+}
+
+If no questions are needed, return: {"questions": []}`
+}

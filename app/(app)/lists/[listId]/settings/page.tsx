@@ -3,6 +3,8 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { ListSettingsForm } from "@/components/lists/list-settings-form"
+import { ContextAnswersManager } from "@/components/ai/context-answers-manager"
+import type { ContextQuestion } from "@/lib/types/database"
 
 export default async function ListSettingsPage({
   params,
@@ -17,7 +19,7 @@ export default async function ListSettingsPage({
   } = await supabase.auth.getUser()
   if (!user) notFound()
 
-  const [listResult, membershipResult, membersResult] = await Promise.all([
+  const [listResult, membershipResult, membersResult, questionsResult] = await Promise.all([
     supabase
       .from("lists")
       .select(
@@ -36,6 +38,11 @@ export default async function ListSettingsPage({
       .select(
         "id, user_id, role, joined_at, created_at, profiles(name, email, avatar_url)"
       )
+      .eq("list_id", listId)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("context_questions")
+      .select("*")
       .eq("list_id", listId)
       .order("created_at", { ascending: true }),
   ])
@@ -76,6 +83,10 @@ export default async function ListSettingsPage({
         members={members}
         currentUserId={user.id}
         isOwner={membership.role === "owner"}
+      />
+
+      <ContextAnswersManager
+        questions={(questionsResult.data as ContextQuestion[]) ?? []}
       />
     </div>
   )

@@ -125,6 +125,17 @@ export type InviteToken = {
   created_at: string
 }
 
+export type ContextQuestion = {
+  id: string
+  list_id: string
+  question: string
+  answer: string | null
+  status: "pending" | "answered" | "dismissed"
+  triggered_by: string | null
+  created_at: string
+  answered_at: string | null
+}
+
 // Union types
 export type Role = "owner" | "editor" | "viewer"
 export type ExtractionStatus = "pending" | "processing" | "completed" | "failed"
