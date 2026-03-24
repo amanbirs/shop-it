@@ -42,10 +42,13 @@ export function ContextQuestionPopup({ questions }: ContextQuestionPopupProps) {
         return
       }
 
-      toast.success("Got it, thanks!")
       setAnswer("")
+      const isLast = currentIndex >= visible.length - 1
+      if (isLast) {
+        toast.success("All done — your answers will improve recommendations!")
+      }
       // Move to next question
-      if (currentIndex < visible.length - 1) {
+      if (!isLast) {
         setCurrentIndex((i) => i + 1)
       }
     })
