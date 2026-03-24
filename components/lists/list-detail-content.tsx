@@ -59,10 +59,10 @@ export function ListDetailContent({
     : null
 
   return (
-    <div className="flex gap-0 -mx-6 -mb-6">
-      {/* Left panel: product grid */}
+    <div className="flex -mx-6 -mb-6 h-[calc(100vh-theme(spacing.12)-theme(spacing.6))]">
+      {/* Left panel: product grid — independent scroll */}
       <div
-        className={`flex-1 overflow-y-auto p-6 transition-all duration-200 ${
+        className={`flex-1 min-w-0 overflow-y-auto p-6 ${
           currentProduct ? "lg:w-[60%] lg:flex-none" : ""
         }`}
       >
@@ -78,6 +78,7 @@ export function ListDetailContent({
               products={filtered}
               onProductClick={setSelectedProduct}
               onRetryExtraction={handleRetry}
+              compact={!!currentProduct}
             />
           ) : products.length === 0 ? (
             <EmptyState
@@ -97,9 +98,9 @@ export function ListDetailContent({
         </div>
       </div>
 
-      {/* Right panel: product detail */}
+      {/* Right panel: product detail — independent scroll */}
       {currentProduct && (
-        <div className="hidden lg:block lg:w-[40%] border-l border-border overflow-y-auto">
+        <div className="hidden lg:flex lg:w-[40%] lg:flex-none border-l border-border overflow-y-auto">
           <ProductDetailPanel
             product={currentProduct}
             canEdit={canEdit}
