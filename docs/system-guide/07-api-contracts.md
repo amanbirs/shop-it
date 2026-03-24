@@ -510,7 +510,7 @@ Body: {}                                           // no input needed — reads 
     "verdict": "Go with the LG C3 if budget allows. Fall back to...",
     "product_count": 4,
     "generated_at": "2026-03-22T10:30:00Z",
-    "model_version": "gemini-2.0-flash"
+    "model_version": "gemini-3.1-flash-lite-preview"
   }
 }
 

@@ -14,7 +14,7 @@ export async function callGemini(
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) throw new Error("GEMINI_API_KEY is not set")
 
-  const model = options.model ?? "gemini-2.0-flash"
+  const model = options.model ?? "gemini-3.1-flash-lite-preview"
   const url = `${GEMINI_API_BASE}/${model}:generateContent?key=${apiKey}`
 
   const body: Record<string, unknown> = {

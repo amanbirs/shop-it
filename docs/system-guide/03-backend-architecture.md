@@ -293,7 +293,7 @@ Output JSON:
 ```
 - Upsert into list_ai_opinions (insert or update if exists)
 - Set product_count = number of products analyzed
-- Set generated_at = now(), model_version = "gemini-2.0-flash" (or whichever)
+- Set generated_at = now(), model_version = "gemini-3.1-flash-lite-preview" (or whichever)
 - Return the opinion to the client
 ```
 

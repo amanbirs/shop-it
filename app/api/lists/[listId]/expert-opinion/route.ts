@@ -119,7 +119,7 @@ export async function POST(
           verdict: opinion.verdict || null,
           product_count: products.length,
           generated_at: new Date().toISOString(),
-          model_version: "gemini-2.0-flash",
+          model_version: "gemini-3.1-flash-lite-preview",
         },
         { onConflict: "list_id" }
       )
