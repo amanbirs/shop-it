@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { Star, Trash2 } from "lucide-react"
+import { Star, Trash2, Heart } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -98,55 +98,56 @@ export function ProductCard({
             </div>
           )}
 
-          {/* Shortlist toggle — top-left, always visible when active */}
-          {onToggleShortlist && (
-            <button
-              className={cn(
-                "absolute top-1.5 left-1.5 rounded-md p-1.5 transition-all border border-border/50",
-                product.is_shortlisted
-                  ? "opacity-100 bg-shortlisted/20 text-shortlisted"
-                  : "opacity-0 group-hover/card:opacity-100 bg-background/80 backdrop-blur-sm text-muted-foreground hover:text-shortlisted hover:bg-shortlisted/10"
-              )}
-              onClick={(e) => {
-                e.stopPropagation()
-                onToggleShortlist()
-              }}
-            >
-              <Star
+          {/* Action buttons — top-right, visible on hover */}
+          <div className="absolute top-1.5 right-1.5 flex items-center gap-1">
+            {onToggleShortlist && (
+              <button
                 className={cn(
-                  "h-3.5 w-3.5",
-                  product.is_shortlisted && "fill-current"
+                  "rounded-md p-1.5 transition-all border border-border/50",
+                  product.is_shortlisted
+                    ? "opacity-100 bg-shortlisted/20 text-shortlisted"
+                    : "opacity-0 group-hover/card:opacity-100 bg-background/80 backdrop-blur-sm text-muted-foreground hover:text-shortlisted hover:bg-shortlisted/10"
                 )}
-              />
-            </button>
-          )}
-
-          {/* Remove button — top-right, visible on hover */}
-          {onArchive && (
-            <AlertDialog>
-              <AlertDialogTrigger
-                className="absolute top-1.5 right-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity rounded-md p-1.5 bg-background/80 backdrop-blur-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border/50"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onToggleShortlist()
+                }}
               >
-                <Trash2 className="h-3.5 w-3.5" />
-              </AlertDialogTrigger>
-              <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Remove product?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will remove the product from the list. This action
-                    cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={onArchive}>
-                    Remove
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
+                <Heart
+                  className={cn(
+                    "h-3.5 w-3.5",
+                    product.is_shortlisted && "fill-current"
+                  )}
+                />
+              </button>
+            )}
+
+            {onArchive && (
+              <AlertDialog>
+                <AlertDialogTrigger
+                  className="opacity-0 group-hover/card:opacity-100 transition-opacity rounded-md p-1.5 bg-background/80 backdrop-blur-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border/50"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </AlertDialogTrigger>
+                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Remove product?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will remove the product from the list. This action
+                      cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={onArchive}>
+                      Remove
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
         </div>
 
         {/* Title */}
