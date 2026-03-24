@@ -93,8 +93,9 @@ export async function regenerateAiComment(listId: string): Promise<void> {
       .update({ ai_comment: cleaned })
       .eq("id", listId)
 
-    revalidatePath("/")
-    revalidatePath(`/lists/${listId}`)
+    // No revalidatePath here — this function is called non-blocking
+    // from product mutations which already handle their own revalidation.
+    // The updated comment will appear on the next page load or Realtime refresh.
   } catch (err) {
     console.error("[regenerateAiComment] Failed, using fallback:", err)
 
