@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
+import { cn } from "@/lib/utils"
 
 const staggerChildren = {
   hidden: {},
@@ -25,20 +26,20 @@ const fadeUp = {
   },
 }
 
+type LoginMode = "password" | "magic-link"
+
 export function LoginCard() {
   const prefersReducedMotion = useReducedMotion()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [state, setState] = useState<"email" | "sent">("email")
+  const [mode, setMode] = useState<LoginMode>("password")
+  const [state, setState] = useState<"form" | "sent">("form")
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [cooldown, setCooldown] = useState(0)
-  const [showDevLogin, setShowDevLogin] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleMagicLink = () => {
     setError(null)
-
     startTransition(async () => {
       const supabase = createClient()
       const { error } = await supabase.auth.signInWithOtp({
@@ -47,34 +48,56 @@ export function LoginCard() {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       })
-
       if (error) {
         setError(error.message)
         return
       }
-
       setState("sent")
     })
   }
 
-  const handleDevLogin = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handlePasswordLogin = () => {
     setError(null)
-
     startTransition(async () => {
       const supabase = createClient()
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
-
       if (error) {
         setError(error.message)
         return
       }
-
       window.location.href = "/"
     })
+  }
+
+  const handleSignUp = () => {
+    setError(null)
+    startTransition(async () => {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+      if (error) {
+        setError(error.message)
+        return
+      }
+      setState("sent")
+    })
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (mode === "magic-link") {
+      handleMagicLink()
+    } else {
+      handlePasswordLogin()
+    }
   }
 
   const handleResend = () => {
@@ -89,25 +112,16 @@ export function LoginCard() {
         return prev - 1
       })
     }, 1000)
-
-    startTransition(async () => {
-      const supabase = createClient()
-      await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      })
-    })
+    handleMagicLink()
   }
 
   return (
     <div className="relative z-10 w-full max-w-md mx-4">
       <div className="rounded-2xl border border-white/50 bg-white/70 p-8 shadow-xl backdrop-blur-xl dark:border-zinc-700/50 dark:bg-zinc-900/60 dark:shadow-xl dark:shadow-black/30">
         <AnimatePresence mode="wait">
-          {state === "email" ? (
+          {state === "form" ? (
             <motion.div
-              key="email"
+              key="form"
               initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.98 }}
@@ -128,6 +142,34 @@ export function LoginCard() {
                   </p>
                 </motion.div>
 
+                {/* Mode toggle */}
+                <motion.div variants={fadeUp} className="flex rounded-lg bg-muted p-1">
+                  <button
+                    type="button"
+                    onClick={() => { setMode("password"); setError(null) }}
+                    className={cn(
+                      "flex-1 rounded-md py-1.5 text-sm font-medium transition-colors",
+                      mode === "password"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Password
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setMode("magic-link"); setError(null) }}
+                    className={cn(
+                      "flex-1 rounded-md py-1.5 text-sm font-medium transition-colors",
+                      mode === "magic-link"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Magic Link
+                  </button>
+                </motion.div>
+
                 <motion.form
                   variants={fadeUp}
                   onSubmit={handleSubmit}
@@ -143,21 +185,39 @@ export function LoginCard() {
                     className="text-base"
                     aria-label="Email address"
                   />
+
+                  {mode === "password" && (
+                    <Input
+                      type="password"
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="text-base"
+                      aria-label="Password"
+                    />
+                  )}
+
                   {error && (
                     <p className="text-sm text-destructive">{error}</p>
                   )}
+
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={isPending || !email}
+                    disabled={isPending || !email || (mode === "password" && !password)}
                     aria-busy={isPending}
                   >
                     {isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : mode === "magic-link" ? (
+                      "Send Magic Link"
                     ) : (
-                      "Continue with Email"
+                      "Sign In"
                     )}
                   </Button>
+
+                  {/* Sign up disabled — users are created by admin in Supabase dashboard */}
                 </motion.form>
 
                 <motion.div
@@ -182,47 +242,11 @@ export function LoginCard() {
                     Apple
                   </Button>
                 </motion.div>
-
-                {/* Dev password login — remove before production */}
-                {process.env.NODE_ENV === "development" && (
-                  <motion.div variants={fadeUp} className="space-y-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowDevLogin(!showDevLogin)}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors w-full text-center"
-                    >
-                      {showDevLogin ? "Hide" : "Dev"} password login
-                    </button>
-                    {showDevLogin && (
-                      <form onSubmit={handleDevLogin} className="space-y-2">
-                        <Input
-                          type="password"
-                          placeholder="Password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="text-sm"
-                        />
-                        <Button
-                          type="submit"
-                          variant="outline"
-                          className="w-full text-sm"
-                          disabled={isPending || !email || !password}
-                        >
-                          {isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            "Sign in with password"
-                          )}
-                        </Button>
-                      </form>
-                    )}
-                  </motion.div>
-                )}
               </motion.div>
             </motion.div>
           ) : (
             <motion.div
-              key="confirmation"
+              key="sent"
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
@@ -233,7 +257,7 @@ export function LoginCard() {
                 <Mail className="mx-auto h-10 w-10 text-muted-foreground" />
                 <h2 className="text-xl font-semibold">Check your email</h2>
                 <p className="text-sm text-muted-foreground">
-                  We sent a magic link to{" "}
+                  We sent a {mode === "magic-link" ? "magic link" : "confirmation link"} to{" "}
                   <span className="font-medium text-foreground">{email}</span>
                 </p>
                 <p className="text-sm text-muted-foreground">
@@ -252,7 +276,7 @@ export function LoginCard() {
 
               <button
                 type="button"
-                onClick={() => setState("email")}
+                onClick={() => setState("form")}
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 ← Back to login
