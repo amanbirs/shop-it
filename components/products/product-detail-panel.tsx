@@ -13,12 +13,15 @@ import { ProductSpecs } from "@/components/products/product-specs"
 import { ProductProsCons } from "@/components/products/product-pros-cons"
 import { ProductReviews } from "@/components/products/product-reviews"
 import { ProductActions } from "@/components/products/product-actions"
+import { CommentThreadLoader } from "@/components/collaboration/comment-thread-loader"
 import { relativeTime } from "@/lib/utils"
 import type { Product } from "@/lib/types/database"
 
 type ProductDetailPanelProps = {
   product: Product
   canEdit: boolean
+  currentUserId: string
+  isOwner: boolean
   onClose: () => void
   onRetryExtraction?: () => void
 }
@@ -26,6 +29,8 @@ type ProductDetailPanelProps = {
 export function ProductDetailPanel({
   product,
   canEdit,
+  currentUserId,
+  isOwner,
   onClose,
   onRetryExtraction,
 }: ProductDetailPanelProps) {
@@ -180,6 +185,18 @@ export function ProductDetailPanel({
             </AccordionSection>
           )}
         </div>
+      )}
+
+      <Separator />
+
+      {/* Comments */}
+      {isReady && (
+        <CommentThreadLoader
+          productId={product.id}
+          currentUserId={currentUserId}
+          canEdit={canEdit}
+          isOwner={isOwner}
+        />
       )}
 
       <Separator />

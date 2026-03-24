@@ -12,6 +12,7 @@ import {
 } from "@/lib/validators/products"
 import type { ActionResult } from "@/lib/types/actions"
 import { extractDomain } from "@/lib/utils"
+import { regenerateAiComment } from "@/lib/actions/ai"
 
 // See docs/system-guide/07-api-contracts.md § Revalidation Strategy
 
@@ -91,6 +92,8 @@ export async function addProduct(
     if (error) throw error
 
     revalidatePath(`/lists/${parsed.data.listId}`)
+    // Non-blocking AI comment regeneration
+    regenerateAiComment(parsed.data.listId).catch(() => {})
     return { success: true, data: { id: data.id, extraction_status: "pending" } }
   } catch (err) {
     console.error("[addProduct] Failed:", err)
@@ -137,6 +140,7 @@ export async function toggleShortlist(
     if (error) throw error
 
     revalidatePath(`/lists/${listId}`)
+    regenerateAiComment(listId).catch(() => {})
     return {
       success: true,
       data: { id: parsed.data.productId, isShortlisted: parsed.data.isShortlisted },
@@ -197,6 +201,7 @@ export async function markPurchased(
     if (error) throw error
 
     revalidatePath(`/lists/${listId}`)
+    regenerateAiComment(listId).catch(() => {})
     return {
       success: true,
       data: { id: parsed.data.productId, isPurchased: parsed.data.isPurchased },
@@ -243,6 +248,7 @@ export async function archiveProduct(
     if (error) throw error
 
     revalidatePath(`/lists/${listId}`)
+    regenerateAiComment(listId).catch(() => {})
     return { success: true, data: { id: parsed.data.productId } }
   } catch (err) {
     console.error("[archiveProduct] Failed:", err)

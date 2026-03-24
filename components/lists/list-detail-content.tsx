@@ -8,19 +8,27 @@ import { AddProductForm } from "@/components/products/add-product-form"
 import { ProductGrid } from "@/components/products/product-grid"
 import { ProductDetailPanel } from "@/components/products/product-detail-panel"
 import { ListFilters, type FilterValue } from "@/components/lists/list-filters"
+import { ExpertOpinionCard } from "@/components/ai/expert-opinion-card"
+import { ExpertOpinionCta } from "@/components/ai/expert-opinion-cta"
 import { EmptyState } from "@/components/common/empty-state"
-import type { Product } from "@/lib/types/database"
+import type { Product, ListAiOpinion } from "@/lib/types/database"
 
 type ListDetailContentProps = {
   listId: string
   products: Product[]
   userRole: string
+  currentUserId: string
+  opinion: ListAiOpinion | null
+  productNames: Record<string, string>
 }
 
 export function ListDetailContent({
   listId,
   products,
   userRole,
+  currentUserId,
+  opinion,
+  productNames,
 }: ListDetailContentProps) {
   const [filter, setFilter] = useState<FilterValue>("all")
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
@@ -42,6 +50,10 @@ export function ListDetailContent({
     purchased: products.filter((p) => p.is_purchased).length,
   }
 
+  const completedProductCount = products.filter(
+    (p) => p.extraction_status === "completed"
+  ).length
+
   const handleRetry = (productId: string) => {
     startTransition(async () => {
       const result = await retryExtraction({ productId })
@@ -53,7 +65,6 @@ export function ListDetailContent({
     })
   }
 
-  // Keep selected product in sync with Realtime updates
   const currentProduct = selectedProduct
     ? products.find((p) => p.id === selectedProduct.id) ?? selectedProduct
     : null
@@ -95,6 +106,23 @@ export function ListDetailContent({
               description="Try a different filter."
             />
           )}
+
+          {/* Expert Opinion section */}
+          {!currentProduct && (
+            <div className="space-y-4 pt-4">
+              {opinion && (
+                <ExpertOpinionCard
+                  opinion={opinion}
+                  productNames={productNames}
+                />
+              )}
+              <ExpertOpinionCta
+                listId={listId}
+                productCount={completedProductCount}
+                opinion={opinion}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -104,6 +132,8 @@ export function ListDetailContent({
           <ProductDetailPanel
             product={currentProduct}
             canEdit={canEdit}
+            currentUserId={currentUserId}
+            isOwner={userRole === "owner"}
             onClose={() => setSelectedProduct(null)}
             onRetryExtraction={() => handleRetry(currentProduct.id)}
           />
@@ -116,6 +146,8 @@ export function ListDetailContent({
           <ProductDetailPanel
             product={currentProduct}
             canEdit={canEdit}
+            currentUserId={currentUserId}
+            isOwner={userRole === "owner"}
             onClose={() => setSelectedProduct(null)}
             onRetryExtraction={() => handleRetry(currentProduct.id)}
           />
