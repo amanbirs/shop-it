@@ -206,3 +206,93 @@ Return JSON:
 
 If no questions are needed, return: {"questions": []}`
 }
+
+export function buildSmartSuggestionsPrompt(params: {
+  products: Array<{
+    title: string | null
+    brand: string | null
+    url: string
+    price_min: number | null
+    price_max: number | null
+    currency: string
+    is_shortlisted: boolean
+    ai_verdict: string | null
+  }>
+  category: string | null
+  priorities: string[]
+  budgetMin: number | null
+  budgetMax: number | null
+  purchaseBy: string | null
+  userContext: Record<string, unknown>
+  contextAnswers: Array<{ question: string; answer: string }>
+}): string {
+  const shortlisted = params.products.filter((p) => p.is_shortlisted)
+  const currency = params.products[0]?.currency ?? "INR"
+
+  const productList = params.products
+    .map(
+      (p) =>
+        `- ${p.title ?? "Unknown"} (${p.brand ?? "?"}) — ${p.price_min ?? "?"}${p.price_max ? `-${p.price_max}` : ""} ${p.currency}${p.is_shortlisted ? " [SHORTLISTED]" : ""}${p.ai_verdict ? ` — "${p.ai_verdict}"` : ""}`
+    )
+    .join("\n")
+
+  const shortlistedSummary = shortlisted.length
+    ? `\nUser has shortlisted these (strong preference signal):\n${shortlisted.map((p) => `- ${p.title ?? "Unknown"} (${p.brand ?? "?"})`).join("\n")}`
+    : ""
+
+  const existingUrls = params.products.map((p) => p.url).join("\n")
+
+  const contextAnswerText = params.contextAnswers.length
+    ? `\nUser preferences (from Q&A):\n${params.contextAnswers.map((a) => `- Q: ${a.question} → A: ${a.answer}`).join("\n")}`
+    : ""
+
+  const userContextText =
+    params.userContext && Object.keys(params.userContext).length
+      ? `\nUser context: ${JSON.stringify(params.userContext)}`
+      : ""
+
+  return `You are a product research assistant helping a user find additional products for their purchase comparison list. Use Google Search to find real, currently available products that complement their existing research.
+
+Category: ${params.category ?? "general"}
+${params.budgetMin ? `Budget: ${params.budgetMin}-${params.budgetMax} ${currency}` : ""}
+${params.purchaseBy ? `Purchase deadline: ${params.purchaseBy}` : ""}
+${params.priorities.length ? `Priorities (in order of importance): ${params.priorities.join(", ")}` : ""}
+${userContextText}
+${contextAnswerText}
+
+Current products in their list:
+${productList}
+${shortlistedSummary}
+
+DO NOT suggest any of these URLs (already in the list):
+${existingUrls}
+
+Instructions:
+- Search for 0-4 additional products that would meaningfully complement this list
+- Focus on products that fill GAPS: different price points, different brands, features the current options lack
+- If the user has shortlisted products, find alternatives in a similar class
+- Each suggestion must be a REAL, currently available product with a valid purchase URL
+- Weight suggestions toward the user's priorities and budget
+- Each "reason" must specifically reference the user's priorities, budget, or shortlisted items
+- If the list is already comprehensive (good coverage of options), return 0 suggestions
+- Return at most 4 suggestions, ranked by relevance
+
+Return ONLY valid JSON matching this exact schema (no markdown, no explanation outside the JSON):
+{
+  "suggestions": [
+    {
+      "title": "Full product name",
+      "url": "https://purchase-url",
+      "domain": "amazon.in",
+      "image_url": "https://image-url or null",
+      "brand": "Brand Name",
+      "price_min": 44990,
+      "price_max": null,
+      "currency": "${currency}",
+      "reason": "Fits your budget with 144Hz refresh matching your gaming priority — a strong alternative to the shortlisted Sony X90L"
+    }
+  ]
+}
+
+If no suggestions are needed, return: {"suggestions": []}`
+}

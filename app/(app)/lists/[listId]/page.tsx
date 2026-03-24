@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { ListHeader } from "@/components/lists/list-header"
 import { ListDetailContent } from "@/components/lists/list-detail-content"
 import { ContextQuestionPopup } from "@/components/ai/context-question-popup"
-import type { Product, ListAiOpinion, ContextQuestion } from "@/lib/types/database"
+import type { Product, ListAiOpinion, ContextQuestion, ProductSuggestion } from "@/lib/types/database"
 
 export default async function ListDetailPage({
   params,
@@ -19,7 +19,7 @@ export default async function ListDetailPage({
   if (!user) notFound()
 
   // Parallel fetches for performance
-  const [listResult, membershipResult, membersResult, productsResult, opinionResult, questionsResult] =
+  const [listResult, membershipResult, membersResult, productsResult, opinionResult, questionsResult, suggestionsResult] =
     await Promise.all([
       supabase
         .from("lists")
@@ -55,6 +55,12 @@ export default async function ListDetailPage({
         .from("context_questions")
         .select("*")
         .eq("list_id", listId)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("product_suggestions")
+        .select("*")
+        .eq("list_id", listId)
+        .eq("status", "pending")
         .order("created_at", { ascending: true }),
     ])
 
@@ -95,6 +101,7 @@ export default async function ListDetailPage({
         <ListDetailContent
           listId={listId}
           products={products}
+          suggestions={(suggestionsResult.data as ProductSuggestion[]) ?? []}
           userRole={membership.role}
           currentUserId={user.id}
           opinion={(opinionResult.data as ListAiOpinion) ?? null}

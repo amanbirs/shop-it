@@ -4,18 +4,24 @@ import { useState, useTransition } from "react"
 import { toast } from "sonner"
 import { useRealtimeProducts } from "@/hooks/use-realtime-products"
 import { retryExtraction, archiveProduct, toggleShortlist } from "@/lib/actions/products"
+import { acceptSuggestion, dismissSuggestion, requestSuggestions } from "@/lib/actions/suggestions"
 import { AddProductForm } from "@/components/products/add-product-form"
 import { ProductGrid } from "@/components/products/product-grid"
 import { ProductDetailPanel } from "@/components/products/product-detail-panel"
 import { ListFilters, type FilterValue } from "@/components/lists/list-filters"
 import { VerdictBanner } from "@/components/ai/verdict-banner"
 import { ChatPanel } from "@/components/ai/chat-panel"
+import { SuggestionCard } from "@/components/ai/suggestion-card"
 import { EmptyState } from "@/components/common/empty-state"
-import type { Product, ListAiOpinion } from "@/lib/types/database"
+import { Sparkles } from "lucide-react"
+import { AnimatePresence, motion } from "framer-motion"
+import { Button } from "@/components/ui/button"
+import type { Product, ListAiOpinion, ProductSuggestion } from "@/lib/types/database"
 
 type ListDetailContentProps = {
   listId: string
   products: Product[]
+  suggestions: ProductSuggestion[]
   userRole: string
   currentUserId: string
   opinion: ListAiOpinion | null
@@ -25,6 +31,7 @@ type ListDetailContentProps = {
 export function ListDetailContent({
   listId,
   products,
+  suggestions,
   userRole,
   currentUserId,
   opinion,
@@ -33,6 +40,7 @@ export function ListDetailContent({
   const [filter, setFilter] = useState<FilterValue>("all")
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
+  const [isFindingMore, setIsFindingMore] = useState(false)
   const [, startTransition] = useTransition()
 
   useRealtimeProducts(listId)
@@ -88,6 +96,37 @@ export function ListDetailContent({
         }
       }
     })
+  }
+
+  const handleAcceptSuggestion = (suggestionId: string) => {
+    startTransition(async () => {
+      const result = await acceptSuggestion({ suggestionId })
+      if (result.success) {
+        toast.success("Product added to your list")
+      } else {
+        toast.error(result.error.message)
+      }
+    })
+  }
+
+  const handleDismissSuggestion = (suggestionId: string) => {
+    startTransition(async () => {
+      const result = await dismissSuggestion({ suggestionId })
+      if (!result.success) {
+        toast.error(result.error.message)
+      }
+    })
+  }
+
+  const handleFindMore = async () => {
+    setIsFindingMore(true)
+    const result = await requestSuggestions({ listId })
+    if (result.success) {
+      toast.success("Searching for products...")
+    } else {
+      toast.error(result.error.message)
+    }
+    setIsFindingMore(false)
   }
 
   const currentProduct = selectedProduct
@@ -146,6 +185,57 @@ export function ListDetailContent({
               title={`No ${filter} products`}
               description="Try a different filter."
             />
+          )}
+
+          {/* AI Suggestions section */}
+          {suggestions.length > 0 && filter === "all" && (
+            <div className="mt-6 space-y-3">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-ai-accent" />
+                AI found products that might fit your list
+              </p>
+              <div
+                className={
+                  currentProduct
+                    ? "grid grid-cols-1 md:grid-cols-2 gap-4"
+                    : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+                }
+              >
+                <AnimatePresence>
+                  {suggestions.map((s) => (
+                    <motion.div
+                      key={s.id}
+                      layout
+                      exit={{ scale: 0.95, opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="group/suggestion"
+                    >
+                      <SuggestionCard
+                        suggestion={s}
+                        onAccept={() => handleAcceptSuggestion(s.id)}
+                        onDismiss={() => handleDismissSuggestion(s.id)}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </div>
+          )}
+
+          {/* Find more button */}
+          {canEdit && completedProductCount >= 2 && filter === "all" && (
+            <div className="mt-4 flex justify-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-ai-accent hover:text-ai-accent/80 hover:bg-ai-accent/5"
+                onClick={handleFindMore}
+                disabled={isFindingMore}
+              >
+                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                {isFindingMore ? "Searching..." : "Find more products"}
+              </Button>
+            </div>
           )}
         </div>
       </div>

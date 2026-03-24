@@ -43,7 +43,7 @@ export function useRealtimeProducts(listId: string) {
   )
 
   useEffect(() => {
-    const channel = supabase
+    const productsChannel = supabase
       .channel(`list-products-${listId}`)
       .on(
         "postgres_changes",
@@ -57,8 +57,26 @@ export function useRealtimeProducts(listId: string) {
       )
       .subscribe()
 
+    // Subscribe to suggestion changes (new suggestions, accept/dismiss)
+    const suggestionsChannel = supabase
+      .channel(`list-suggestions-${listId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "product_suggestions",
+          filter: `list_id=eq.${listId}`,
+        },
+        () => {
+          router.refresh()
+        }
+      )
+      .subscribe()
+
     return () => {
-      supabase.removeChannel(channel)
+      supabase.removeChannel(productsChannel)
+      supabase.removeChannel(suggestionsChannel)
     }
-  }, [listId, supabase, handleChange])
+  }, [listId, supabase, handleChange, router])
 }

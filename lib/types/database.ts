@@ -136,7 +136,31 @@ export type ContextQuestion = {
   answered_at: string | null
 }
 
+export type ProductSuggestion = {
+  id: string
+  list_id: string
+  title: string
+  url: string
+  domain: string | null
+  image_url: string | null
+  brand: string | null
+  price_min: number | null
+  price_max: number | null
+  currency: string
+  reason: string
+  confidence: number | null
+  source_urls: string[]
+  search_queries: string[]
+  trigger_type: SuggestionTrigger
+  status: SuggestionStatus
+  accepted_product_id: string | null
+  created_at: string
+  updated_at: string
+}
+
 // Union types
 export type Role = "owner" | "editor" | "viewer"
 export type ExtractionStatus = "pending" | "processing" | "completed" | "failed"
 export type ListStatus = "active" | "archived"
+export type SuggestionStatus = "pending" | "accepted" | "dismissed"
+export type SuggestionTrigger = "product_added" | "expert_opinion" | "context_answered" | "manual"

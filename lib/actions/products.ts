@@ -13,6 +13,7 @@ import {
 import type { ActionResult } from "@/lib/types/actions"
 import { extractDomain } from "@/lib/utils"
 import { regenerateAiComment } from "@/lib/actions/ai"
+import { triggerSuggestions } from "@/lib/actions/suggestions"
 
 // See docs/system-guide/07-api-contracts.md § Revalidation Strategy
 
@@ -94,6 +95,20 @@ export async function addProduct(
     revalidatePath(`/lists/${parsed.data.listId}`)
     // Non-blocking AI comment regeneration
     regenerateAiComment(parsed.data.listId).catch(() => {})
+
+    // Non-blocking: trigger smart suggestions every 3rd product added
+    supabase
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .eq("list_id", parsed.data.listId)
+      .is("archived_at", null)
+      .then(({ count }) => {
+        if (count && count % 3 === 0) {
+          triggerSuggestions(parsed.data.listId, "product_added").catch(() => {})
+        }
+      })
+      .catch(() => {})
+
     return { success: true, data: { id: data.id, extraction_status: "pending" } }
   } catch (err) {
     console.error("[addProduct] Failed:", err)

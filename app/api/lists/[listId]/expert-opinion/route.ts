@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { callGemini } from "@/lib/ai/gemini"
 import { buildExpertOpinionPrompt } from "@/lib/ai/prompts"
 import { revalidatePath } from "next/cache"
+import { triggerSuggestions } from "@/lib/actions/suggestions"
 
 // See docs/system-guide/07-api-contracts.md § POST /api/lists/[listId]/expert-opinion
 
@@ -129,6 +130,9 @@ export async function POST(
     if (upsertError) throw upsertError
 
     revalidatePath(`/lists/${listId}`)
+
+    // Non-blocking: trigger smart suggestions after expert opinion generated
+    triggerSuggestions(listId, "expert_opinion").catch(() => {})
 
     return NextResponse.json({ success: true, data: upserted })
   } catch (err) {

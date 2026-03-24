@@ -6,6 +6,7 @@ import { getAuthenticatedUser } from "@/lib/supabase/auth"
 import { callGemini } from "@/lib/ai/gemini"
 import { buildContextQuestionsPrompt } from "@/lib/ai/prompts"
 import type { ActionResult } from "@/lib/types/actions"
+import { triggerSuggestions } from "@/lib/actions/suggestions"
 
 /**
  * Generate contextual questions after a product extraction completes.
@@ -133,6 +134,20 @@ export async function answerContextQuestion(
 
     revalidatePath(`/lists/${question.list_id}`)
     revalidatePath(`/lists/${question.list_id}/settings`)
+
+    // Non-blocking: trigger smart suggestions every 5th answered question
+    supabase
+      .from("context_questions")
+      .select("id", { count: "exact", head: true })
+      .eq("list_id", question.list_id)
+      .eq("status", "answered")
+      .then(({ count }) => {
+        if (count && count % 5 === 0) {
+          triggerSuggestions(question.list_id, "context_answered").catch(() => {})
+        }
+      })
+      .catch(() => {})
+
     return { success: true, data: { id: input.questionId } }
   } catch (err) {
     console.error("[answerContextQuestion] Failed:", err)
