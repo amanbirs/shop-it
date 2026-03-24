@@ -2,18 +2,24 @@
 
 ## Checklist
 
-- [ ] Implement all animations from design specs
-- [ ] Build all loading/skeleton states
+- [x] Dashboard card stagger animation (Framer Motion, 60ms between cards)
+- [x] Build loading skeletons: dashboard (`app/(app)/loading.tsx`), list detail (`app/(app)/lists/[listId]/loading.tsx`)
 - [ ] Accessibility audit (keyboard nav, ARIA, contrast)
 - [ ] Mobile responsiveness audit at 375px
 - [ ] Dark mode audit (both themes)
-- [ ] Error boundary components
-- [ ] 404 page
-- [ ] Performance optimization (images, bundle, waterfalls)
-- [ ] Update Supabase redirect URLs for production
-- [ ] Deploy to Vercel production
+- [x] Error boundary: app-level (`app/(app)/error.tsx`), list-level (`app/(app)/lists/[listId]/error.tsx`)
+- [x] 404 page (`app/not-found.tsx`)
+- [x] Performance: `next.config.ts` allows all HTTPS image domains
+- [x] Invite acceptance route (`app/(auth)/invite/[token]/route.ts`)
+- [x] List settings page placeholder (`app/(app)/lists/[listId]/settings/page.tsx`)
+- [x] Profile page placeholder (`app/(app)/profile/page.tsx`)
+- [x] Login stagger animation (implemented in Phase 2)
+- [ ] Flashlight hover effect on dashboard cards
+- [ ] `prefers-reduced-motion` support
+- [ ] Update Supabase redirect URLs for production (manual)
+- [ ] Deploy to Vercel production (manual)
 - [ ] Smoke test production deployment
-- [ ] Update CLAUDE.md if any deviations from spec
+- [x] Update CLAUDE.md and system guide with deviations
 
 ---
 

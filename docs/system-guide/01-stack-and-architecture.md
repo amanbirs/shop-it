@@ -32,8 +32,8 @@ When planning a large or expensive purchase, research is scattered across WhatsA
 | **Hosting** | Vercel | Zero-config serverless, free tier covers personal use, edge functions |
 | **Database** | Supabase (PostgreSQL) | Free tier, built-in auth/realtime/storage, row-level security |
 | **Auth** | Supabase Auth | Magic links + Google OAuth, no cost at family scale |
-| **URL Scraping** | TBD (Firecrawl or Jina Reader) | Pay-per-use, returns clean content from product URLs |
-| **AI Extraction** | Google Gemini API (Flash) | Parse scraped content into structured product data, very low cost |
+| **URL Scraping** | Firecrawl | Pay-per-use, returns clean markdown from product URLs |
+| **AI Extraction** | Google Gemini API (`gemini-3.1-flash-lite-preview`) | Parse scraped content into structured product data, very low cost |
 | **File Storage** | Supabase Storage | Product images/thumbnails, included in free tier |
 | **Real-time** | Supabase Realtime | Live updates when collaborators add/modify items |
 

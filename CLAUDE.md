@@ -24,9 +24,12 @@ All design and architecture specs live in `docs/system-guide/`. These are the so
 
 ### Using these docs
 
+The system guide represents the **current correct state** of the project — not a historical record of what was planned or what changed. It is the definitive reference for how the app works right now.
+
 - **Before building a feature**, read the relevant spec. It has the layout, component breakdown, animation spec, and design decisions already made.
-- **During development**, update the spec if you deviate from it. The docs should always reflect the current state of the app — not a frozen plan.
+- **During development**, update the spec if you deviate from it. If the code and the spec disagree, fix whichever is wrong — never leave them out of sync.
 - **When onboarding**, read 01 → 02 → 03 → 04 in order for the full architecture picture, then jump to specific page specs as needed.
+- **When making decisions**, refer to the system guide first. If a question is answered there, follow it. If it's not, make the decision and update the guide.
 
 ## Development Approach
 

@@ -2,25 +2,27 @@
 
 ## Checklist
 
-- [ ] Write migration: `invite_tokens` table + RLS policies
-- [ ] Deploy migration: `npx supabase db push`
-- [ ] Build Server Actions: `inviteMember`, `removeMember`, `updateRole`, `acceptInvite`, `resendInvite`
+- [x] Write migration: `invite_tokens` table + RLS (already in `20260323000001_create_tables.sql` + `20260323000002_add_rls_policies.sql`)
+- [x] Deploy migration: included in Phase 2 push
+- [x] Build Server Actions: `inviteMember`, `removeMember`, `updateRole`, `acceptInvite`, `resendInvite` (`lib/actions/members.ts`)
 - [ ] Write tests for member actions
-- [ ] Build invite/share dialog (`components/collaboration/invite-member-dialog.tsx`)
-- [ ] Build member list (`components/collaboration/member-list.tsx`)
-- [ ] Build member avatar stack (`components/collaboration/avatar-stack.tsx`)
-- [ ] Build invite link generation and copy logic
-- [ ] Build comment Server Actions: `addComment`, `updateComment`, `deleteComment`
+- [x] Build invite/share dialog (`components/collaboration/invite-member-dialog.tsx`) — email invite + copy link + member list
+- [x] Build member list (`components/collaboration/member-list.tsx`) — role dropdown, remove button, pending state
+- [x] Build member avatar stack (`components/collaboration/avatar-stack.tsx`)
+- [x] Build invite link copy logic (in invite dialog)
+- [x] Build comment Server Actions: `addComment`, `updateComment`, `deleteComment` (`lib/actions/comments.ts`)
 - [ ] Write tests for comment actions
-- [ ] Build comment thread (`components/collaboration/comment-thread.tsx`)
-- [ ] Build comment input (`components/collaboration/comment-input.tsx`)
-- [ ] Build Realtime hooks: `useRealtimeComments`, `useRealtimeMembers`
-- [ ] Build invite acceptance flow (magic link → auto-join)
-- [ ] Build list settings page (`app/(app)/lists/[listId]/settings/page.tsx`)
+- [x] Build comment thread (`components/collaboration/comment-thread.tsx`) — threaded, with Realtime subscription
+- [x] Build comment input (`components/collaboration/comment-input.tsx`) — Enter to submit, reply mode
+- [x] Comment Realtime subscription (in comment-thread.tsx)
+- [ ] Build dedicated `useRealtimeMembers` hook — deferred, using page refresh for now
+- [x] Build invite acceptance route (`app/(auth)/invite/[token]/route.ts`) — built in Phase 10
+- [x] Build list settings page placeholder (`app/(app)/lists/[listId]/settings/page.tsx`) — built in Phase 10
 - [ ] Test: invite a member → they receive email → they join → appear in member list
 - [ ] Test: role changes propagate
 - [ ] Test: comments appear in Realtime for other users
 - [ ] Test: viewer role cannot add products or comment
+- **Note:** Comment thread not yet wired into product detail sheet — will add in a follow-up.
 
 ---
 

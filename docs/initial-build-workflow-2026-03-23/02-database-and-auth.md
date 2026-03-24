@@ -2,19 +2,23 @@
 
 ## Checklist
 
-- [ ] Write SQL migration: tables, indexes, RLS policies
-- [ ] Write SQL migration: profile auto-creation trigger
-- [ ] Deploy migrations to Supabase
+- [x] Write SQL migration: tables, indexes (`supabase/migrations/20260323000001_create_tables.sql`)
+- [x] Write SQL migration: RLS policies (`supabase/migrations/20260323000002_add_rls_policies.sql`)
+- [x] Write SQL migration: triggers (`supabase/migrations/20260323000003_triggers.sql`)
+- [x] Deploy migrations to Supabase (`npx supabase db push`) — required `pgcrypto` extension fix + DB reset
 - [ ] ~~Set up Database Webhook~~ (deferred to Phase 6 — Edge Function must exist first)
-- [ ] Create Supabase server client (`lib/supabase/server.ts`)
-- [ ] Create Supabase browser client (`lib/supabase/client.ts`)
-- [ ] Create Supabase admin client (`lib/supabase/admin.ts`)
-- [ ] Build auth middleware (`middleware.ts`)
-- [ ] Build login page (`app/(auth)/login/page.tsx`)
-- [ ] Build auth callback route (`app/(auth)/auth/callback/route.ts`)
+- [x] Create Supabase server client (`lib/supabase/server.ts`) — uses publishable key
+- [x] Create Supabase browser client (`lib/supabase/client.ts`) — uses publishable key
+- [x] Create Supabase admin client (`lib/supabase/admin.ts`) — uses secret key, falls back to service_role
+- [x] Build auth proxy (`proxy.ts` + `lib/supabase/proxy.ts`) — Next.js 16 uses proxy.ts, not middleware.ts
+- [x] Build login page (`app/(auth)/login/page.tsx`) — glassmorphic card, dot grid, stagger animation
+- [x] Build auth callback route (`app/(auth)/auth/callback/route.ts`)
+- [x] Enable Realtime replication via `alter publication supabase_realtime add table` for products, comments, list_members
+- [x] Configure Supabase Auth redirect URLs
 - [ ] Test: login via magic link end-to-end
-- [ ] Test: profile auto-created after first login
-- [ ] Test: unauthenticated redirect to /login
+- [x] Test: login via dev password (Supabase dashboard user + password login)
+- [x] Test: profile auto-created after first login (trigger working)
+- [x] Test: unauthenticated redirect to /login (proxy handles this)
 
 ---
 

@@ -2,19 +2,26 @@
 
 ## Checklist
 
-- [ ] Build Server Actions: `createList`, `updateList`, `archiveList`
+- [x] Build Server Actions: `createList`, `updateList`, `archiveList` (`lib/actions/lists.ts`)
 - [ ] Write tests for list Server Actions
-- [ ] Build Dashboard page (`app/(app)/page.tsx`)
-- [ ] Build list card component (`components/lists/list-card.tsx`)
-- [ ] Build empty state component (`components/common/empty-state.tsx`)
-- [ ] Build Create List dialog (`components/lists/create-list-dialog.tsx`)
+- [x] Build Dashboard page (`app/(app)/page.tsx`) — fetches memberships + product stats server-side
+- [x] Build list card component (`components/lists/list-card.tsx`) — uses AI emoji with fallback
+- [x] Build empty state component (`components/common/empty-state.tsx`)
+- [x] Build Create List dialog (`components/lists/create-list-dialog.tsx`) — with AI title placeholder state for Phase 9
+- [x] Build dashboard content wrapper (`components/lists/dashboard-content.tsx`) — grid + create dialog + dashed new-list card
 - [ ] Build flashlight hover effect on card grid
 - [ ] Build view toggle (grid/list) with URL state via `nuqs`
-- [ ] Wire sidebar nav to real list data
-- [ ] Wire command palette to list search
+- [x] Wire sidebar nav to real list data (layout fetches `category_emoji`)
+- [x] Wire command palette to list search
+- [x] Add `category_emoji` column to lists table + `getCategoryEmoji` fallback utility
+- [x] Add `pgcrypto` extension for `gen_random_bytes` in invite_tokens
+- [x] Fix RLS: `lists_select` allows owner direct access (avoids chicken-and-egg with list_members)
+- [x] Fix RLS: `list_members` policies use `SECURITY DEFINER` helper functions to avoid infinite recursion
+- [x] Add dev password login for development (hidden in production)
 - [ ] Test: create a list → appears on dashboard + sidebar
 - [ ] Test: archive a list → disappears from dashboard
 - [ ] Test: empty state shows when no lists
+- **Note:** List detail page (`/lists/[listId]`) not yet built — that's Phase 6.
 
 ---
 

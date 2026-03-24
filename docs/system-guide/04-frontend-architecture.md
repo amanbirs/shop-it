@@ -142,17 +142,16 @@ components/
     create-list-dialog.tsx      # New list modal
 
   products/                    # Product-related components
-    product-card.tsx            # The main product card
+    product-card.tsx            # The main product card (handles pending/failed/completed states)
     product-card-skeleton.tsx   # Loading skeleton matching card shape
-    product-grid.tsx            # Grid/table layout for product cards
-    product-detail-sheet.tsx    # Slide-over with full product details
-    product-specs.tsx           # Specs table (renders JSONB keys)
+    product-grid.tsx            # Responsive grid (3 cols default, 2 cols when detail panel open)
+    product-detail-panel.tsx    # Inline 40% right panel with full product details (replaces Sheet)
+    product-specs.tsx           # Specs table (renders JSONB keys as Title Case)
     product-reviews.tsx         # Review snippets + AI summary
-    product-pros-cons.tsx       # Pros/cons list with icons
-    product-status-badge.tsx    # Shortlisted/purchased badge
-    product-actions.tsx         # Action buttons (shortlist, purchased, delete)
-    add-product-form.tsx        # URL input + paste handler
-    extraction-progress.tsx     # Animated extraction status indicator
+    product-pros-cons.tsx       # Pros/cons list with green checks / red X
+    product-actions.tsx         # Action buttons (shortlist, purchased, archive with confirmation)
+    add-product-form.tsx        # URL input with toast feedback
+    extraction-progress.tsx     # Status indicator (pending/processing/failed with retry)
 
   ai/                          # AI feature components
     expert-opinion-card.tsx     # Expert opinion display
@@ -287,27 +286,33 @@ Mobile:
 ```
 
 **List page** (`lists/[listId]/page.tsx`):
+
+Scroll architecture: `<main>` is `overflow-hidden`. The list header stays pinned. Below it, a flex container fills the remaining height with two independently scrollable panels.
+
 ```
-┌──────────────────────────────────────────────┐
-│  ← Back   List Name        ⚙ Settings       │
-│  Budget: ₹30K-50K  |  Due: Mar 30  | 👥 3   │
-│──────────────────────────────────────────────│
-│  [Paste URL here...]                    [+]  │
-│──────────────────────────────────────────────│
-│  All (6)  |  Shortlisted (3)  |  Purchased   │
-│──────────────────────────────────────────────│
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐      │
-│  │ Product │  │ Product │  │ Product │      │
-│  │  Card   │  │  Card   │  │  Card   │      │
-│  │         │  │         │  │         │      │
-│  └─────────┘  └─────────┘  └─────────┘      │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐      │
-│  │ Product │  │ Product │  │ Skeleton│      │
-│  │  Card   │  │  Card   │  │(loading)│      │
-│  └─────────┘  └─────────┘  └─────────┘      │
-│──────────────────────────────────────────────│
-│  🤖 Get Expert Opinion                       │
-└──────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  ← Back   List Name        ⚙ Settings    (pinned header)│
+│  Budget: ₹30K-50K  |  Due: Mar 30  | 👥 3               │
+│──────────────────────────────────────────────────────────│
+│  Left panel (60%, scrolls)  │  Right panel (40%, scrolls)│
+│  ┌──────────────────────┐   │  Product Details     [✕]   │
+│  │ [Paste URL...]  [Add]│   │  ┌────────────────────┐   │
+│  └──────────────────────┘   │  │  🖼 Product Image   │   │
+│  [All (6)] [Shortlisted]    │  └────────────────────┘   │
+│  ┌────────┐  ┌────────┐    │  Title · Brand · Domain    │
+│  │Product │  │Product │    │  ₹89,990  ★ 4.5 (2.1K)    │
+│  │ Card   │  │ Card   │    │  ✨ "Premium pick"         │
+│  └────────┘  └────────┘    │  [★ Shortlisted] [Purchase]│
+│  ┌────────┐  ┌────────┐    │  ─────────────────────     │
+│  │Product │  │Skeleton│    │  ▸ AI Summary              │
+│  │ Card   │  │        │    │  ▸ Specs (12)              │
+│  └────────┘  └────────┘    │  ▸ Pros & Cons             │
+│                             │  ▸ Reviews                 │
+└─────────────────────────────┴────────────────────────────┘
+
+Grid: 2 columns when panel open, 3 columns when closed.
+No outer page scrollbar — only the two panels scroll.
+```
 ```
 
 ---

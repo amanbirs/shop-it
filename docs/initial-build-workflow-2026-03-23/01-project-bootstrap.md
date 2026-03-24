@@ -2,15 +2,16 @@
 
 ## Checklist
 
-- [ ] Create Next.js 15 project with App Router
-- [ ] Install core dependencies
-- [ ] Initialize shadcn/ui
-- [ ] Set up Tailwind CSS 4 with semantic tokens
-- [ ] Create Supabase project (manual)
-- [ ] Get API keys: Gemini, Firecrawl (manual)
-- [ ] Create `.env.local` with all environment variables
+- [x] Create Next.js 16 project with App Router (Next.js 16.2.1, Turbopack)
+- [x] Install core dependencies (shadcn, Supabase, Framer Motion, Sonner, nuqs, cmdk, zod, react-hook-form)
+- [x] Initialize shadcn/ui (22 components installed)
+- [x] Set up Tailwind CSS 4 with semantic tokens (shortlisted, purchased, ai-accent, extraction-pending)
+- [x] Create Supabase project (manual) — project name: `shop-it`
+- [x] Get API keys: Gemini, Firecrawl
+- [x] Create `.env.local` with all environment variables
 - [ ] Create Vercel project and link repo (manual)
-- [ ] Verify `npm run dev` serves the app
+- [x] Verify `npm run dev` serves the app
+- [x] Set up vitest test runner
 
 ---
 
