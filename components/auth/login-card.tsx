@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { Loader2, Mail } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -26,6 +26,7 @@ const fadeUp = {
 }
 
 export function LoginCard() {
+  const prefersReducedMotion = useReducedMotion()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [state, setState] = useState<"email" | "sent">("email")
@@ -107,14 +108,14 @@ export function LoginCard() {
           {state === "email" ? (
             <motion.div
               key="email"
-              initial={{ opacity: 0, scale: 0.98 }}
+              initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              transition={{ duration: 0.2 }}
+              exit={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.98 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
             >
               <motion.div
-                variants={staggerChildren}
-                initial="hidden"
+                variants={prefersReducedMotion ? undefined : staggerChildren}
+                initial={prefersReducedMotion ? false : "hidden"}
                 animate="visible"
                 className="space-y-6"
               >
