@@ -37,7 +37,7 @@ export function ListHeader({ list, memberCount, userRole }: ListHeaderProps) {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div className="min-w-0">
-            <h1 className="text-2xl font-semibold leading-tight truncate">
+            <h1 className="text-2xl font-semibold leading-snug truncate">
               {list.category_emoji !== "📋" && (
                 <span className="mr-1">{list.category_emoji}</span>
               )}

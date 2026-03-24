@@ -86,9 +86,9 @@ export function Header({ user, lists, onCreateList, onMenuToggle }: HeaderProps)
 
         <DropdownMenu>
           <DropdownMenuTrigger className="rounded-full cursor-pointer" aria-label="User menu">
-            <Avatar className="h-7 w-7">
+            <Avatar className="h-6 w-6">
               <AvatarImage src={user.avatar_url ?? undefined} />
-              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+              <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">

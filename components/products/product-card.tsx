@@ -64,7 +64,7 @@ export function ProductCard({
       )}
       onClick={onClick}
     >
-      <CardContent className="p-4 space-y-3">
+      <CardContent className="p-3 space-y-2">
         {/* Product image */}
         {product.image_url ? (
           <div className="relative h-40 w-full rounded-md overflow-hidden bg-muted">
@@ -83,7 +83,7 @@ export function ProductCard({
         )}
 
         {/* Title */}
-        <h3 className="font-medium text-sm leading-tight line-clamp-2">
+        <h3 className="font-medium text-sm leading-snug line-clamp-2">
           {product.title ?? "Untitled product"}
         </h3>
 

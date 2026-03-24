@@ -73,8 +73,8 @@ export function ListDetailContent({
     <div className="flex -mx-6 h-full">
       {/* Left panel: product grid — independent scroll */}
       <div
-        className={`flex-1 min-w-0 overflow-y-auto px-6 pb-6 ${
-          currentProduct ? "lg:w-[60%] lg:flex-none" : ""
+        className={`flex-1 min-w-0 overflow-y-auto px-6 pb-6 transition-[width] duration-250 ease-out ${
+          currentProduct ? "lg:w-[55%] lg:flex-none" : ""
         }`}
       >
         <div className="space-y-4">
@@ -129,7 +129,7 @@ export function ListDetailContent({
 
       {/* Right panel: product detail — independent scroll */}
       {currentProduct && (
-        <div className="hidden lg:flex lg:w-[40%] lg:flex-none border-l border-border overflow-y-auto">
+        <div className="hidden lg:flex lg:w-[45%] lg:flex-none border-l border-border overflow-y-auto">
           <ProductDetailPanel
             product={currentProduct}
             canEdit={canEdit}

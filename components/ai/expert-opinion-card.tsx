@@ -107,7 +107,7 @@ function PickCard({
             </div>
           )}
           <div className="min-w-0">
-            <p className="text-sm font-medium leading-tight truncate">
+            <p className="text-sm font-medium leading-snug truncate">
               {product.title ?? "Unknown"}
             </p>
             <p className="text-sm text-muted-foreground">

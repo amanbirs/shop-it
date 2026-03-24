@@ -81,7 +81,7 @@ export function ProductDetailPanel({
 
       {/* Title + brand + domain */}
       <div className="space-y-1">
-        <h2 className="text-xl font-semibold leading-tight">
+        <h2 className="text-xl font-semibold leading-snug">
           {product.title ?? product.url}
         </h2>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -37,11 +37,11 @@ export function ListCard({ list }: ListCardProps) {
   return (
     <Link href={`/lists/${list.id}`} className="block group">
       <Card className="h-full transition-all duration-150 hover:shadow-lg group-hover:-translate-y-0.5 cursor-pointer">
-        <CardContent className="p-5 space-y-3">
+        <CardContent className="p-4 space-y-2.5">
           {/* Emoji + Title */}
-          <div className="space-y-1">
-            <span className="text-2xl">{emoji}</span>
-            <h3 className="font-semibold text-lg leading-tight line-clamp-2">
+          <div className="space-y-0.5">
+            <span className="text-xl leading-none">{emoji}</span>
+            <h3 className="font-semibold text-base leading-snug line-clamp-2">
               {list.name}
             </h3>
           </div>
