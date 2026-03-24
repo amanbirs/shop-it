@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Sparkles, Loader2, RefreshCw } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import type { ListAiOpinion } from "@/lib/types/database"
@@ -31,53 +31,51 @@ export function ExpertOpinionCta({
       const data = await res.json()
 
       if (!data.success) {
-        toast.error(data.error?.message ?? "Failed to generate opinion")
+        toast.error(data.error?.message ?? "Failed to generate recommendation")
       } else {
-        toast.success("Expert opinion generated")
-        // Page will revalidate via the API route
+        toast.success("Recommendation updated")
         window.location.reload()
       }
     } catch {
-      toast.error("Failed to generate opinion")
+      toast.error("Failed to generate recommendation")
     } finally {
       setLoading(false)
     }
   }
 
-  // No opinion yet — show generate button
+  // No opinion yet
   if (!opinion) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-ai-accent/30 bg-ai-accent/5 p-6">
-        <Sparkles className="h-6 w-6 text-ai-accent" />
-        <p className="text-sm text-muted-foreground text-center">
+      <div className="text-center py-8 space-y-3">
+        <p className="text-sm text-muted-foreground">
           {canGenerate
-            ? "Get an AI expert opinion comparing your products"
-            : "Add at least 2 products to get an expert opinion"}
+            ? "Compare your products and get a recommendation"
+            : "Add at least 2 products to compare"}
         </p>
+        {canGenerate && (
+          <p className="text-xs text-muted-foreground">
+            Based on your priorities and budget.
+          </p>
+        )}
         <Button
           onClick={handleGenerate}
           disabled={!canGenerate || loading}
-          className="bg-ai-accent hover:bg-ai-accent/90 text-white"
         >
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : (
-            <Sparkles className="h-4 w-4 mr-2" />
-          )}
-          {loading ? "Generating..." : "Get Expert Opinion"}
+          ) : null}
+          {loading ? "Analyzing..." : "Get recommendation"}
         </Button>
       </div>
     )
   }
 
-  // Opinion exists but stale
+  // Stale opinion
   if (isStale) {
     return (
-      <div className="flex items-center gap-3 rounded-lg border border-extraction-pending/30 bg-extraction-pending/5 px-4 py-3">
-        <RefreshCw className="h-4 w-4 text-extraction-pending shrink-0" />
-        <p className="text-sm text-muted-foreground flex-1">
-          Expert opinion may be outdated — products have changed since it was
-          generated.
+      <div className="flex items-center justify-between rounded-lg bg-muted px-4 py-3">
+        <p className="text-sm text-muted-foreground">
+          Products have changed since this was generated.
         </p>
         <Button
           variant="outline"
@@ -95,6 +93,5 @@ export function ExpertOpinionCta({
     )
   }
 
-  // Opinion exists and fresh — don't show CTA
   return null
 }

@@ -114,6 +114,7 @@ export function ListDetailContent({
                 <ExpertOpinionCard
                   opinion={opinion}
                   productNames={productNames}
+                  products={products}
                 />
               )}
               <ExpertOpinionCta
