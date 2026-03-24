@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { ArrowLeft, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ListTitleEditable } from "@/components/lists/list-title-editable"
 import { ListHeaderMeta } from "@/components/lists/list-header-meta"
 import type { List } from "@/lib/types/database"
 
@@ -44,12 +45,11 @@ export function ListHeader({ list, memberCount, members, currentUserId, userRole
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="text-2xl font-semibold leading-snug truncate">
-            {list.category_emoji !== "📋" && (
-              <span className="mr-1">{list.category_emoji}</span>
-            )}
-            {list.name}
-          </h1>
+          <ListTitleEditable
+            listId={list.id}
+            name={list.name}
+            emoji={list.category_emoji}
+          />
         </div>
 
         {userRole === "owner" && (
