@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
 import { useRealtimeProducts } from "@/hooks/use-realtime-products"
-import { retryExtraction, archiveProduct } from "@/lib/actions/products"
+import { retryExtraction, archiveProduct, toggleShortlist } from "@/lib/actions/products"
 import { AddProductForm } from "@/components/products/add-product-form"
 import { ProductGrid } from "@/components/products/product-grid"
 import { ProductDetailPanel } from "@/components/products/product-detail-panel"
@@ -66,6 +66,16 @@ export function ListDetailContent({
     })
   }
 
+  const handleToggleShortlist = (productId: string, isShortlisted: boolean) => {
+    startTransition(async () => {
+      const result = await toggleShortlist({
+        productId,
+        isShortlisted: !isShortlisted,
+      })
+      if (!result.success) toast.error(result.error.message)
+    })
+  }
+
   const handleArchive = (productId: string) => {
     startTransition(async () => {
       const result = await archiveProduct({ productId })
@@ -118,6 +128,7 @@ export function ListDetailContent({
               onProductClick={setSelectedProduct}
               onRetryExtraction={handleRetry}
               onArchive={handleArchive}
+              onToggleShortlist={handleToggleShortlist}
               canEdit={canEdit}
               compact={!!currentProduct}
             />

@@ -9,6 +9,7 @@ type ProductGridProps = {
   onProductClick?: (product: Product) => void
   onRetryExtraction?: (productId: string) => void
   onArchive?: (productId: string) => void
+  onToggleShortlist?: (productId: string, isShortlisted: boolean) => void
   canEdit?: boolean
   compact?: boolean
 }
@@ -18,6 +19,7 @@ export function ProductGrid({
   onProductClick,
   onRetryExtraction,
   onArchive,
+  onToggleShortlist,
   canEdit = false,
   compact = false,
 }: ProductGridProps) {
@@ -45,6 +47,7 @@ export function ProductGrid({
               onClick={() => onProductClick?.(product)}
               onRetryExtraction={() => onRetryExtraction?.(product.id)}
               onArchive={canEdit ? () => onArchive?.(product.id) : undefined}
+              onToggleShortlist={canEdit ? () => onToggleShortlist?.(product.id, product.is_shortlisted) : undefined}
             />
           </motion.div>
         ))}

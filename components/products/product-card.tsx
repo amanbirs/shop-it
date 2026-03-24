@@ -27,6 +27,7 @@ type ProductCardProps = {
   onClick?: () => void
   onRetryExtraction?: () => void
   onArchive?: () => void
+  onToggleShortlist?: () => void
 }
 
 export function ProductCard({
@@ -34,6 +35,7 @@ export function ProductCard({
   onClick,
   onRetryExtraction,
   onArchive,
+  onToggleShortlist,
 }: ProductCardProps) {
   // Show skeleton for pending/processing products
   if (product.extraction_status === "pending" || product.extraction_status === "processing") {
@@ -94,6 +96,29 @@ export function ProductCard({
             <div className="h-40 w-full rounded-md bg-muted flex items-center justify-center text-muted-foreground text-sm">
               No image
             </div>
+          )}
+
+          {/* Shortlist toggle — top-left, always visible when active */}
+          {onToggleShortlist && (
+            <button
+              className={cn(
+                "absolute top-1.5 left-1.5 rounded-md p-1.5 transition-all border border-border/50",
+                product.is_shortlisted
+                  ? "opacity-100 bg-shortlisted/20 text-shortlisted"
+                  : "opacity-0 group-hover/card:opacity-100 bg-background/80 backdrop-blur-sm text-muted-foreground hover:text-shortlisted hover:bg-shortlisted/10"
+              )}
+              onClick={(e) => {
+                e.stopPropagation()
+                onToggleShortlist()
+              }}
+            >
+              <Star
+                className={cn(
+                  "h-3.5 w-3.5",
+                  product.is_shortlisted && "fill-current"
+                )}
+              />
+            </button>
           )}
 
           {/* Remove button — top-right, visible on hover */}
