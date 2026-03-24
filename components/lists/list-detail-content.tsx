@@ -8,8 +8,8 @@ import { AddProductForm } from "@/components/products/add-product-form"
 import { ProductGrid } from "@/components/products/product-grid"
 import { ProductDetailPanel } from "@/components/products/product-detail-panel"
 import { ListFilters, type FilterValue } from "@/components/lists/list-filters"
-import { ExpertOpinionCard } from "@/components/ai/expert-opinion-card"
-import { ExpertOpinionCta } from "@/components/ai/expert-opinion-cta"
+import { VerdictBanner } from "@/components/ai/verdict-banner"
+import { ChatPanel } from "@/components/ai/chat-panel"
 import { EmptyState } from "@/components/common/empty-state"
 import type { Product, ListAiOpinion } from "@/lib/types/database"
 
@@ -32,6 +32,7 @@ export function ListDetailContent({
 }: ListDetailContentProps) {
   const [filter, setFilter] = useState<FilterValue>("all")
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [chatOpen, setChatOpen] = useState(false)
   const [, startTransition] = useTransition()
 
   useRealtimeProducts(listId)
@@ -78,12 +79,25 @@ export function ListDetailContent({
         }`}
       >
         <div className="space-y-4">
+          {/* Verdict banner — always visible when opinion exists */}
+          <VerdictBanner
+            listId={listId}
+            opinion={opinion}
+            products={products}
+            productNames={productNames}
+            completedProductCount={completedProductCount}
+            onOpenChat={() => setChatOpen(true)}
+          />
+
+          {/* Add product form */}
           {canEdit && <AddProductForm listId={listId} />}
 
+          {/* Filters */}
           {products.length > 0 && (
             <ListFilters active={filter} onChange={setFilter} counts={counts} />
           )}
 
+          {/* Product grid or empty state */}
           {filtered.length > 0 ? (
             <ProductGrid
               products={filtered}
@@ -105,24 +119,6 @@ export function ListDetailContent({
               title={`No ${filter} products`}
               description="Try a different filter."
             />
-          )}
-
-          {/* Expert Opinion section */}
-          {!currentProduct && (
-            <div className="space-y-4 pt-4">
-              {opinion && (
-                <ExpertOpinionCard
-                  opinion={opinion}
-                  productNames={productNames}
-                  products={products}
-                />
-              )}
-              <ExpertOpinionCta
-                listId={listId}
-                productCount={completedProductCount}
-                opinion={opinion}
-              />
-            </div>
           )}
         </div>
       </div>
@@ -154,6 +150,13 @@ export function ListDetailContent({
           />
         </div>
       )}
+
+      {/* Chat panel */}
+      <ChatPanel
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+        listId={listId}
+      />
     </div>
   )
 }
