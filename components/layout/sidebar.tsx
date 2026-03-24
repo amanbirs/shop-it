@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { ChevronLeft, ChevronRight, Plus, Settings } from "lucide-react"
 import { cn, getCategoryEmoji } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { CreateListDialog } from "@/components/lists/create-list-dialog"
 
 type SidebarList = {
   id: string
@@ -18,10 +19,10 @@ type SidebarList = {
 type SidebarProps = {
   ownedLists: SidebarList[]
   sharedLists: SidebarList[]
-  onCreateList?: () => void
 }
 
-export function Sidebar({ ownedLists, sharedLists, onCreateList }: SidebarProps) {
+export function Sidebar({ ownedLists, sharedLists }: SidebarProps) {
+  const [createOpen, setCreateOpen] = useState(false)
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
 
@@ -36,6 +37,7 @@ export function Sidebar({ ownedLists, sharedLists, onCreateList }: SidebarProps)
   }, [collapsed])
 
   return (
+    <>
     <aside
       className={cn(
         "hidden lg:flex h-screen flex-col border-r border-border bg-card transition-[width] duration-200 ease-out shrink-0",
@@ -68,7 +70,7 @@ export function Sidebar({ ownedLists, sharedLists, onCreateList }: SidebarProps)
               variant="ghost"
               size="icon"
               className="h-6 w-6 text-muted-foreground"
-              onClick={onCreateList}
+              onClick={() => setCreateOpen(true)}
               aria-label="New list"
             >
               <Plus className="h-3.5 w-3.5" />
@@ -176,5 +178,8 @@ export function Sidebar({ ownedLists, sharedLists, onCreateList }: SidebarProps)
         </Link>
       </div>
     </aside>
+
+    <CreateListDialog open={createOpen} onOpenChange={setCreateOpen} />
+    </>
   )
 }
