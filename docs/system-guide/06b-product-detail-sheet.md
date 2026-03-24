@@ -1,16 +1,18 @@
-# ShopIt — Product Detail Sheet
+# ShopIt — Product Detail Panel
 
-Detailed design spec for the Product Detail Sheet — the slide-over panel that reveals full product information when a user taps a product card.
+Detailed design spec for the Product Detail Panel — the inline side panel that reveals full product information when a user taps a product card.
 
-> **Note:** This is a sheet/panel component, not a standalone page route. It opens over the List Detail page (`/lists/[id]`). See [06a-page-list-detail.md](./06a-page-list-detail.md) for the parent page spec.
+> **Note:** This is an inline panel component (`components/products/product-detail-panel.tsx`), not a Sheet or standalone page route. It renders alongside the product grid on the List Detail page (`/lists/[id]`). See [06a-page-list-detail.md](./06a-page-list-detail.md) for the parent page spec.
 
 ---
 
 ## Overview
 
-The Product Detail Sheet is where users go deeper on a single product. Tapping any product card (or table row) on the List Detail page opens this sheet, revealing everything the AI extracted plus space for collaboration.
+The Product Detail Panel is where users go deeper on a single product. Tapping any product card on the List Detail page opens this panel, revealing everything the AI extracted plus space for collaboration.
 
-On mobile, it slides up from the bottom as a near-full-screen sheet. On desktop, it slides in from the right as a side panel (like Linear's issue detail), keeping the product grid visible behind it for context. This lets users quickly flip between products without losing their place.
+**Implementation decision (changed from original spec):** We use an inline 60/40 split panel instead of a Sheet with blur overlay. The Sheet approach made it impossible to keep other products in context — the blur obscured the grid. The split panel gives both views independent scroll and keeps the grid fully usable while viewing product details.
+
+On **desktop (lg+)**, the page splits into two panels: product grid (60%) on the left, product detail (40%) on the right. Both scroll independently. The grid reduces to 2 columns (from 3) to maintain card width. On **mobile**, the detail panel takes over the full screen with a close button to return to the grid.
 
 The sheet serves three purposes:
 
@@ -86,11 +88,13 @@ Legend:
   🔗 = External link to source product page
 ```
 
-**Sheet dimensions:** `w-[440px]` fixed width. Full viewport height. Separated from main content by `border-l border-border`.
+**Panel dimensions:** `lg:w-[40%]` of the page width. Full height below the list header. Separated from the product grid by `border-l border-border`. Close button (X) in the top-right.
 
-**Overlay:** Main content gets a `bg-black/5` overlay (light) or `bg-black/20` overlay (dark). Clicking the overlay closes the sheet.
+**No overlay:** The product grid remains fully interactive — no blur, no dimming. The grid reduces from 3 columns to 2 when the panel is open to maintain card readability.
 
-**Scroll:** The sheet content scrolls independently. The hero image scrolls with content (not sticky). Action buttons are inline, not sticky — the sheet is short enough that they're always accessible without scrolling on most viewports, and sticking them would eat vertical space.
+**Scroll:** Both panels scroll independently (`overflow-y-auto` on each). The list header stays pinned above both panels. The outer `<main>` is `overflow-hidden` — only the two panels scroll. Bottom padding (`pb-12`) gives the detail panel breathing room at the end.
+
+**Component file:** `components/products/product-detail-panel.tsx` (the old `product-detail-sheet.tsx` using shadcn Sheet is deprecated).
 
 ---
 

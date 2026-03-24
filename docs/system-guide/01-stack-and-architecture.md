@@ -33,7 +33,7 @@ When planning a large or expensive purchase, research is scattered across WhatsA
 | **Database** | Supabase (PostgreSQL) | Free tier, built-in auth/realtime/storage, row-level security |
 | **Auth** | Supabase Auth | Magic links + Google OAuth, no cost at family scale |
 | **URL Scraping** | Firecrawl | Pay-per-use, returns clean markdown from product URLs |
-| **AI Extraction** | Google Gemini API (Flash) | Parse scraped content into structured product data, very low cost |
+| **AI Extraction** | Google Gemini API (`gemini-3.1-flash-lite-preview`) | Parse scraped content into structured product data, very low cost |
 | **File Storage** | Supabase Storage | Product images/thumbnails, included in free tier |
 | **Real-time** | Supabase Realtime | Live updates when collaborators add/modify items |
 

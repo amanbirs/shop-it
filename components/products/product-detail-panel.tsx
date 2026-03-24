@@ -36,7 +36,7 @@ export function ProductDetailPanel({
   const isReady = product.extraction_status === "completed"
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-6 pb-12 space-y-5">
       {/* Close button */}
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-medium text-muted-foreground">
