@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { DashboardContent } from "@/components/lists/dashboard-content"
+import { SetPasswordBanner } from "@/components/auth/set-password-banner"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -75,5 +76,23 @@ export default async function DashboardPage() {
     }
   }
 
-  return <DashboardContent lists={lists} />
+  // Check if user needs to set password
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("has_password")
+    .eq("id", user.id)
+    .single()
+
+  const showSetPassword = profile && !profile.has_password
+
+  return (
+    <>
+      {showSetPassword && (
+        <div className="px-6 pt-6">
+          <SetPasswordBanner />
+        </div>
+      )}
+      <DashboardContent lists={lists} />
+    </>
+  )
 }
