@@ -110,14 +110,11 @@ export function ProductCard({
           <DomainBadge domain={product.domain} />
         </div>
 
-        {/* AI verdict */}
+        {/* Verdict */}
         {product.ai_verdict && (
-          <Badge
-            variant="secondary"
-            className="text-xs bg-ai-accent/10 text-ai-accent border-ai-accent/20"
-          >
+          <p className="text-xs text-muted-foreground italic">
             {product.ai_verdict}
-          </Badge>
+          </p>
         )}
 
         {/* Shortlisted indicator */}

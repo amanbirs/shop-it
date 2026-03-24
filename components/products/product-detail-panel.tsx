@@ -1,8 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { ExternalLink, Star, Sparkles, ChevronDown, X } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import { ExternalLink, Star, ChevronDown, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -127,12 +126,11 @@ export function ProductDetailPanel({
         </div>
       )}
 
-      {/* AI verdict */}
+      {/* Verdict */}
       {product.ai_verdict && (
-        <Badge className="bg-ai-accent/10 text-ai-accent border-ai-accent/20">
-          <Sparkles className="h-3 w-3 mr-1" />
+        <p className="text-sm text-muted-foreground italic">
           {product.ai_verdict}
-        </Badge>
+        </p>
       )}
 
       <Separator />
@@ -154,8 +152,8 @@ export function ProductDetailPanel({
       {isReady && (
         <div className="space-y-1">
           {product.ai_summary && (
-            <AccordionSection title="AI Summary" defaultOpen>
-              <p className="text-sm leading-relaxed border-l-2 border-ai-accent/30 pl-3">
+            <AccordionSection title="Summary" defaultOpen>
+              <p className="text-sm leading-relaxed text-muted-foreground">
                 {product.ai_summary}
               </p>
             </AccordionSection>

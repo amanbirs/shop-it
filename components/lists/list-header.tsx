@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowLeft, Settings, Users, Sparkles } from "lucide-react"
+import { ArrowLeft, Settings, Users } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { formatPrice } from "@/lib/utils"
@@ -38,17 +38,14 @@ export function ListHeader({ list, memberCount, userRole }: ListHeaderProps) {
           </Link>
           <div className="min-w-0">
             <h1 className="text-2xl font-semibold leading-tight truncate">
-              {!list.ai_title_edited && (
-                <Sparkles className="inline h-5 w-5 mr-1 text-ai-accent" />
-              )}
               {list.category_emoji !== "📋" && (
                 <span className="mr-1">{list.category_emoji}</span>
               )}
               {list.name}
             </h1>
             {list.ai_comment && (
-              <p className="mt-1 text-sm text-muted-foreground italic">
-                🤖 {list.ai_comment}
+              <p className="mt-1 text-sm text-muted-foreground">
+                {list.ai_comment}
               </p>
             )}
           </div>

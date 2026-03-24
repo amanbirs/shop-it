@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Check, Sparkles, ChevronDown } from "lucide-react"
+import { Loader2, Check, ChevronDown } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { createList } from "@/lib/actions/lists"
 import { generateHypeTitle } from "@/lib/actions/ai"
@@ -154,9 +154,8 @@ export function CreateListDialog({ open, onOpenChange }: CreateListDialogProps) 
                 exit={{ opacity: 0 }}
                 className="flex items-center gap-2"
               >
-                <Sparkles className="h-4 w-4 text-ai-accent" />
                 <div className="h-5 w-48 animate-pulse rounded bg-muted" />
-                <span className="text-xs text-muted-foreground">Generating title...</span>
+                <span className="text-xs text-muted-foreground">Suggesting a name...</span>
               </motion.div>
             )}
             {aiTitle && !aiTitleLoading && (
@@ -164,10 +163,9 @@ export function CreateListDialog({ open, onOpenChange }: CreateListDialogProps) 
                 key="title"
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-2 text-sm font-medium text-ai-accent"
+                className="text-sm font-medium text-muted-foreground"
               >
-                <Sparkles className="h-4 w-4" />
-                {aiTitle}
+                Suggestion: {aiTitle}
               </motion.div>
             )}
           </AnimatePresence>

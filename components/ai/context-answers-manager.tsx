@@ -28,7 +28,7 @@ export function ContextAnswersManager({ questions }: ContextAnswersManagerProps)
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <MessageCircleQuestion className="h-4 w-4 text-ai-accent" />
+            <MessageCircleQuestion className="h-4 w-4 text-muted-foreground" />
             Your Preferences
           </CardTitle>
         </CardHeader>
@@ -46,7 +46,7 @@ export function ContextAnswersManager({ questions }: ContextAnswersManagerProps)
     <Card>
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
-          <MessageCircleQuestion className="h-4 w-4 text-ai-accent" />
+          <MessageCircleQuestion className="h-4 w-4 text-muted-foreground" />
           Your Preferences ({answered.length} answered)
         </CardTitle>
         <p className="text-sm text-muted-foreground">

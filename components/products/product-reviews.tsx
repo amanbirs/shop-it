@@ -17,9 +17,9 @@ export function ProductReviews({
   return (
     <div className="space-y-4">
       {aiReviewSummary && (
-        <div className="text-sm leading-relaxed border-l-2 border-ai-accent/30 pl-3">
+        <p className="text-sm leading-relaxed text-muted-foreground">
           {aiReviewSummary}
-        </div>
+        </p>
       )}
 
       {scrapedReviews.length > 0 && (

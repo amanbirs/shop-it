@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Sparkles, Send, Loader2, ChevronRight } from "lucide-react"
+import { X, Send, Loader2, ChevronRight } from "lucide-react"
 import { toast } from "sonner"
 import { answerContextQuestion, dismissContextQuestion } from "@/lib/actions/context-questions"
 import { Textarea } from "@/components/ui/textarea"
@@ -71,14 +71,13 @@ export function ContextQuestionPopup({ questions }: ContextQuestionPopupProps) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 10, scale: 0.95 }}
           transition={{ duration: 0.2, ease: [0.25, 0.4, 0, 1] as const }}
-          className="w-80 rounded-xl border border-ai-accent/20 bg-card shadow-lg shadow-black/10 dark:shadow-black/30"
+          className="w-80 rounded-xl border bg-card shadow-lg shadow-black/10 dark:shadow-black/30"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 pt-3 pb-1">
-            <div className="flex items-center gap-1.5 text-xs text-ai-accent font-medium">
-              <Sparkles className="h-3.5 w-3.5" />
+            <span className="text-xs font-medium text-muted-foreground">
               Quick question
-            </div>
+            </span>
             <button
               onClick={handleDismiss}
               className="text-muted-foreground hover:text-foreground transition-colors p-1 -mr-1"
@@ -115,7 +114,7 @@ export function ContextQuestionPopup({ questions }: ContextQuestionPopupProps) {
               <Button
                 type="submit"
                 size="icon"
-                className="h-9 w-9 shrink-0 bg-ai-accent hover:bg-ai-accent/90 text-white"
+                className="h-9 w-9 shrink-0"
                 disabled={isPending || !answer.trim()}
               >
                 {isPending ? (

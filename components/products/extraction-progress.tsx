@@ -23,7 +23,7 @@ export function ExtractionProgress({
       className={cn(
         "flex items-center gap-2 text-xs px-3 py-2 rounded-md",
         status === "pending" && "bg-extraction-pending/10 text-extraction-pending",
-        status === "processing" && "bg-ai-accent/10 text-ai-accent",
+        status === "processing" && "bg-muted text-muted-foreground",
         status === "failed" && "bg-destructive/10 text-destructive"
       )}
     >
