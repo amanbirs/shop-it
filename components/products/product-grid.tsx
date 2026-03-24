@@ -8,6 +8,8 @@ type ProductGridProps = {
   products: Product[]
   onProductClick?: (product: Product) => void
   onRetryExtraction?: (productId: string) => void
+  onArchive?: (productId: string) => void
+  canEdit?: boolean
   compact?: boolean
 }
 
@@ -15,6 +17,8 @@ export function ProductGrid({
   products,
   onProductClick,
   onRetryExtraction,
+  onArchive,
+  canEdit = false,
   compact = false,
 }: ProductGridProps) {
   if (products.length === 0) return null
@@ -40,6 +44,7 @@ export function ProductGrid({
               product={product}
               onClick={() => onProductClick?.(product)}
               onRetryExtraction={() => onRetryExtraction?.(product.id)}
+              onArchive={canEdit ? () => onArchive?.(product.id) : undefined}
             />
           </motion.div>
         ))}

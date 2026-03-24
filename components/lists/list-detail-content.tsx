@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
 import { useRealtimeProducts } from "@/hooks/use-realtime-products"
-import { retryExtraction } from "@/lib/actions/products"
+import { retryExtraction, archiveProduct } from "@/lib/actions/products"
 import { AddProductForm } from "@/components/products/add-product-form"
 import { ProductGrid } from "@/components/products/product-grid"
 import { ProductDetailPanel } from "@/components/products/product-detail-panel"
@@ -66,6 +66,20 @@ export function ListDetailContent({
     })
   }
 
+  const handleArchive = (productId: string) => {
+    startTransition(async () => {
+      const result = await archiveProduct({ productId })
+      if (!result.success) {
+        toast.error(result.error.message)
+      } else {
+        toast.success("Product removed from list")
+        if (selectedProduct?.id === productId) {
+          setSelectedProduct(null)
+        }
+      }
+    })
+  }
+
   const currentProduct = selectedProduct
     ? products.find((p) => p.id === selectedProduct.id) ?? selectedProduct
     : null
@@ -103,6 +117,8 @@ export function ListDetailContent({
               products={filtered}
               onProductClick={setSelectedProduct}
               onRetryExtraction={handleRetry}
+              onArchive={handleArchive}
+              canEdit={canEdit}
               compact={!!currentProduct}
             />
           ) : products.length === 0 ? (
