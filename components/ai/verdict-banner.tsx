@@ -56,7 +56,7 @@ export function VerdictBanner({
   // No opinion but can generate — subtle CTA
   if (!opinion) {
     return (
-      <div className="border-b border-border py-3">
+      <div className="rounded-lg bg-muted/30 px-4 py-3">
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             {completedProductCount} products ready to compare
@@ -99,10 +99,15 @@ export function VerdictBanner({
     : null
 
   return (
-    <div className="border-b border-border py-3 space-y-2">
+    <div className="rounded-lg bg-muted/30 px-4 py-3 space-y-1.5">
+      {/* Section label */}
+      <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
+        Expert Opinion
+      </p>
+
       {/* Picks line */}
       {picksLine && (
-        <p className="text-sm font-medium text-foreground">
+        <p className="text-base font-semibold text-foreground">
           {picksLine}
         </p>
       )}
@@ -115,7 +120,7 @@ export function VerdictBanner({
       )}
 
       {/* Action links + stale indicator */}
-      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+      <div className="flex items-center gap-3 text-xs text-foreground/60">
         <button
           onClick={() => setExpanded(!expanded)}
           className="hover:text-foreground underline-offset-4 hover:underline transition-colors"

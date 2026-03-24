@@ -36,8 +36,9 @@ export default async function ListDetailPage({
         .single(),
       supabase
         .from("list_members")
-        .select("id", { count: "exact", head: true })
-        .eq("list_id", listId),
+        .select("id, user_id, role, joined_at, created_at, profiles(name, email, avatar_url)")
+        .eq("list_id", listId)
+        .order("created_at", { ascending: true }),
       supabase
         .from("products")
         .select("*")
@@ -69,12 +70,24 @@ export default async function ListDetailPage({
     if (p.title) productNames[p.id] = p.title
   }
 
+  // Build members list for header
+  const members = (memberCountResult.data ?? []).map((m: Record<string, unknown>) => ({
+    id: m.id as string,
+    user_id: m.user_id as string,
+    role: m.role as string,
+    joined_at: m.joined_at as string | null,
+    created_at: m.created_at as string,
+    profile: (m.profiles as { name: string | null; email: string; avatar_url: string | null }) ?? null,
+  }))
+
   return (
     <div className="flex flex-col h-full">
       <div className="px-6 pt-6 pb-4 shrink-0">
         <ListHeader
           list={list}
-          memberCount={memberCountResult.count ?? 1}
+          memberCount={members.length}
+          members={members}
+          currentUserId={user.id}
           userRole={membership.role}
         />
       </div>

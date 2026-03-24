@@ -1,9 +1,17 @@
 import Link from "next/link"
-import { ArrowLeft, Settings, Users } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import { ArrowLeft, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { formatPrice } from "@/lib/utils"
+import { ListHeaderMeta } from "@/components/lists/list-header-meta"
 import type { List } from "@/lib/types/database"
+
+type Member = {
+  id: string
+  user_id: string
+  role: string
+  joined_at: string | null
+  created_at: string
+  profile: { name: string | null; email: string; avatar_url: string | null } | null
+}
 
 type ListHeaderProps = {
   list: Pick<
@@ -15,17 +23,17 @@ type ListHeaderProps = {
     | "budget_min"
     | "budget_max"
     | "purchase_by"
-    | "ai_comment"
-    | "ai_title_edited"
     | "priorities"
   >
   memberCount: number
+  members: Member[]
+  currentUserId: string
   userRole: string
 }
 
-export function ListHeader({ list, memberCount, userRole }: ListHeaderProps) {
+export function ListHeader({ list, memberCount, members, currentUserId, userRole }: ListHeaderProps) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {/* Top row: back + title + settings */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3 min-w-0">
@@ -36,19 +44,12 @@ export function ListHeader({ list, memberCount, userRole }: ListHeaderProps) {
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <div className="min-w-0">
-            <h1 className="text-2xl font-semibold leading-snug truncate">
-              {list.category_emoji !== "📋" && (
-                <span className="mr-1">{list.category_emoji}</span>
-              )}
-              {list.name}
-            </h1>
-            {list.ai_comment && (
-              <p className="mt-1 text-sm text-muted-foreground">
-                {list.ai_comment}
-              </p>
+          <h1 className="text-2xl font-semibold leading-snug truncate">
+            {list.category_emoji !== "📋" && (
+              <span className="mr-1">{list.category_emoji}</span>
             )}
-          </div>
+            {list.name}
+          </h1>
         </div>
 
         {userRole === "owner" && (
@@ -60,38 +61,19 @@ export function ListHeader({ list, memberCount, userRole }: ListHeaderProps) {
         )}
       </div>
 
-      {/* Meta row: budget, deadline, members, priorities */}
-      <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-        {list.budget_min != null && (
-          <span>
-            Budget: {formatPrice(list.budget_min)}
-            {list.budget_max != null && ` – ${formatPrice(list.budget_max)}`}
-          </span>
-        )}
-        {list.purchase_by && (
-          <span>
-            By: {new Date(list.purchase_by).toLocaleDateString("en-IN", {
-              month: "short",
-              day: "numeric",
-            })}
-          </span>
-        )}
-        <span className="flex items-center gap-1">
-          <Users className="h-3.5 w-3.5" />
-          {memberCount}
-        </span>
-      </div>
-
-      {/* Priority chips */}
-      {list.priorities && list.priorities.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {list.priorities.map((p) => (
-            <Badge key={p} variant="secondary" className="text-xs">
-              {p}
-            </Badge>
-          ))}
-        </div>
-      )}
+      {/* Interactive metadata row */}
+      <ListHeaderMeta
+        listId={list.id}
+        budgetMin={list.budget_min}
+        budgetMax={list.budget_max}
+        purchaseBy={list.purchase_by}
+        priorities={(list.priorities as string[]) ?? []}
+        memberCount={memberCount}
+        members={members}
+        currentUserId={currentUserId}
+        isOwner={userRole === "owner"}
+        listName={list.name}
+      />
     </div>
   )
 }
