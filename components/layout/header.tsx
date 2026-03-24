@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -92,26 +93,32 @@ export function Header({ user, lists, onCreateList, onMenuToggle }: HeaderProps)
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>
-              <p className="text-sm font-medium">{user.name || "User"}</p>
-              <p className="text-xs text-muted-foreground truncate">
-                {user.email}
-              </p>
-            </DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>
+                <p className="text-sm font-medium">{user.name || "User"}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {user.email}
+                </p>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => router.push("/profile")}>
-              <User className="mr-2 h-4 w-4" />
-              Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => router.push("/profile")}>
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
-            </DropdownMenuItem>
+            <DropdownMenuGroup>
+              <DropdownMenuItem onClick={() => router.push("/profile")}>
+                <User className="mr-2 h-4 w-4" />
+                Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/profile")}>
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
-            </DropdownMenuItem>
+            <DropdownMenuGroup>
+              <DropdownMenuItem onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
