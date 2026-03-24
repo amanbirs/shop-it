@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
+import { ListSettingsForm } from "@/components/lists/list-settings-form"
 
 export default async function ListSettingsPage({
   params,
@@ -16,13 +17,43 @@ export default async function ListSettingsPage({
   } = await supabase.auth.getUser()
   if (!user) notFound()
 
-  const { data: list } = await supabase
-    .from("lists")
-    .select("id, name")
-    .eq("id", listId)
-    .single()
+  const [listResult, membershipResult, membersResult] = await Promise.all([
+    supabase
+      .from("lists")
+      .select(
+        "id, name, description, category, budget_min, budget_max, purchase_by, priorities"
+      )
+      .eq("id", listId)
+      .single(),
+    supabase
+      .from("list_members")
+      .select("role")
+      .eq("list_id", listId)
+      .eq("user_id", user.id)
+      .single(),
+    supabase
+      .from("list_members")
+      .select(
+        "id, user_id, role, joined_at, created_at, profiles(name, email, avatar_url)"
+      )
+      .eq("list_id", listId)
+      .order("created_at", { ascending: true }),
+  ])
 
-  if (!list) notFound()
+  const list = listResult.data
+  const membership = membershipResult.data
+
+  if (!list || !membership) notFound()
+
+  const members = (membersResult.data ?? []).map((m) => ({
+    ...m,
+    profile:
+      (m.profiles as unknown as {
+        name: string | null
+        email: string
+        avatar_url: string | null
+      }) ?? null,
+  }))
 
   return (
     <div className="p-6 space-y-6 h-full overflow-y-auto">
@@ -30,14 +61,22 @@ export default async function ListSettingsPage({
         <Link
           href={`/lists/${listId}`}
           className="text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Back to list"
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-2xl font-semibold">Settings — {list.name}</h1>
+        <h1 className="text-2xl font-semibold">Settings</h1>
       </div>
-      <p className="text-muted-foreground">
-        List settings (name, description, budget, deadline, priorities, members, danger zone) will be built here.
-      </p>
+
+      <ListSettingsForm
+        list={{
+          ...list,
+          priorities: (list.priorities as string[]) ?? [],
+        }}
+        members={members}
+        currentUserId={user.id}
+        isOwner={membership.role === "owner"}
+      />
     </div>
   )
 }
