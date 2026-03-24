@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { X, Sparkles, Send, Loader2, ChevronRight } from "lucide-react"
 import { toast } from "sonner"
 import { answerContextQuestion, dismissContextQuestion } from "@/lib/actions/context-questions"
-import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import type { ContextQuestion } from "@/lib/types/database"
 
@@ -95,16 +95,23 @@ export function ContextQuestionPopup({ questions }: ContextQuestionPopupProps) {
           </div>
 
           {/* Answer input */}
-          <form onSubmit={handleSubmit} className="px-4 pb-3">
-            <div className="flex gap-2">
-              <Input
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                placeholder="Your answer..."
-                className="text-sm h-9"
-                disabled={isPending}
-                autoFocus
-              />
+          <form onSubmit={handleSubmit} className="px-4 pb-3 space-y-2">
+            <Textarea
+              value={answer}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setAnswer(e.target.value)}
+              placeholder="Your answer..."
+              className="text-sm min-h-[36px] max-h-[120px] resize-none"
+              rows={2}
+              disabled={isPending}
+              autoFocus
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSubmit(e)
+                }
+              }}
+            />
+            <div className="flex gap-2 justify-end">
               <Button
                 type="submit"
                 size="icon"
