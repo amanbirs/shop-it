@@ -6,7 +6,7 @@ import { useRealtimeProducts } from "@/hooks/use-realtime-products"
 import { retryExtraction } from "@/lib/actions/products"
 import { AddProductForm } from "@/components/products/add-product-form"
 import { ProductGrid } from "@/components/products/product-grid"
-import { ProductDetailSheet } from "@/components/products/product-detail-sheet"
+import { ProductDetailPanel } from "@/components/products/product-detail-panel"
 import { ListFilters, type FilterValue } from "@/components/lists/list-filters"
 import { EmptyState } from "@/components/common/empty-state"
 import type { Product } from "@/lib/types/database"
@@ -26,12 +26,10 @@ export function ListDetailContent({
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [, startTransition] = useTransition()
 
-  // Subscribe to Realtime updates for this list's products
   useRealtimeProducts(listId)
 
   const canEdit = userRole === "owner" || userRole === "editor"
 
-  // Filter products
   const filtered = products.filter((p) => {
     if (filter === "shortlisted") return p.is_shortlisted
     if (filter === "purchased") return p.is_purchased
@@ -55,58 +53,73 @@ export function ListDetailContent({
     })
   }
 
-  // Keep selected product in sync with latest data (Realtime updates)
+  // Keep selected product in sync with Realtime updates
   const currentProduct = selectedProduct
     ? products.find((p) => p.id === selectedProduct.id) ?? selectedProduct
     : null
 
   return (
-    <div className="space-y-4">
-      {/* Add product form */}
-      {canEdit && <AddProductForm listId={listId} />}
+    <div className="flex gap-0 -mx-6 -mb-6">
+      {/* Left panel: product grid */}
+      <div
+        className={`flex-1 overflow-y-auto p-6 transition-all duration-200 ${
+          currentProduct ? "lg:w-[60%] lg:flex-none" : ""
+        }`}
+      >
+        <div className="space-y-4">
+          {canEdit && <AddProductForm listId={listId} />}
 
-      {/* Filters */}
-      {products.length > 0 && (
-        <ListFilters active={filter} onChange={setFilter} counts={counts} />
+          {products.length > 0 && (
+            <ListFilters active={filter} onChange={setFilter} counts={counts} />
+          )}
+
+          {filtered.length > 0 ? (
+            <ProductGrid
+              products={filtered}
+              onProductClick={setSelectedProduct}
+              onRetryExtraction={handleRetry}
+            />
+          ) : products.length === 0 ? (
+            <EmptyState
+              title="No products yet"
+              description={
+                canEdit
+                  ? "Paste a product URL above to get started."
+                  : "The list owner hasn't added any products yet."
+              }
+            />
+          ) : (
+            <EmptyState
+              title={`No ${filter} products`}
+              description="Try a different filter."
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Right panel: product detail */}
+      {currentProduct && (
+        <div className="hidden lg:block lg:w-[40%] border-l border-border overflow-y-auto">
+          <ProductDetailPanel
+            product={currentProduct}
+            canEdit={canEdit}
+            onClose={() => setSelectedProduct(null)}
+            onRetryExtraction={() => handleRetry(currentProduct.id)}
+          />
+        </div>
       )}
 
-      {/* Product grid or empty state */}
-      {filtered.length > 0 ? (
-        <ProductGrid
-          products={filtered}
-          onProductClick={setSelectedProduct}
-          onRetryExtraction={handleRetry}
-        />
-      ) : products.length === 0 ? (
-        <EmptyState
-          title="No products yet"
-          description={
-            canEdit
-              ? "Paste a product URL above to get started."
-              : "The list owner hasn't added any products yet."
-          }
-        />
-      ) : (
-        <EmptyState
-          title={`No ${filter} products`}
-          description="Try a different filter."
-        />
+      {/* Mobile: full-screen overlay for product detail */}
+      {currentProduct && (
+        <div className="fixed inset-0 z-40 bg-background overflow-y-auto lg:hidden">
+          <ProductDetailPanel
+            product={currentProduct}
+            canEdit={canEdit}
+            onClose={() => setSelectedProduct(null)}
+            onRetryExtraction={() => handleRetry(currentProduct.id)}
+          />
+        </div>
       )}
-
-      {/* Product detail sheet */}
-      <ProductDetailSheet
-        product={currentProduct}
-        open={!!selectedProduct}
-        onOpenChange={(open) => {
-          if (!open) setSelectedProduct(null)
-        }}
-        canEdit={canEdit}
-        onRetryExtraction={
-          currentProduct
-            ? () => handleRetry(currentProduct.id)
-            : undefined
-        }
-      />
     </div>
   )
 }

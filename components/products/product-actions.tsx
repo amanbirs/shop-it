@@ -105,15 +105,11 @@ export function ProductActions({
       </Button>
 
       <AlertDialog>
-        <AlertDialogTrigger>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-destructive"
-            disabled={isPending}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+        <AlertDialogTrigger
+          className="inline-flex items-center justify-center rounded-md px-2.5 h-8 text-muted-foreground hover:text-destructive hover:bg-accent transition-colors disabled:opacity-50"
+          disabled={isPending}
+        >
+          <Trash2 className="h-4 w-4" />
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
