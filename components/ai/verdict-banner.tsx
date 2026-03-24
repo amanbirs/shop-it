@@ -99,7 +99,7 @@ export function VerdictBanner({
     : null
 
   return (
-    <div className="rounded-lg bg-muted/30 px-4 py-3 space-y-1.5">
+    <div className="rounded-lg bg-muted/60 dark:bg-muted/30 px-4 py-3 space-y-1.5">
       {/* Section label */}
       <p className="text-xs font-medium tracking-wider uppercase text-muted-foreground">
         Expert Opinion

@@ -19,7 +19,7 @@ export default async function ListDetailPage({
   if (!user) notFound()
 
   // Parallel fetches for performance
-  const [listResult, membershipResult, memberCountResult, productsResult, opinionResult, questionsResult] =
+  const [listResult, membershipResult, membersResult, productsResult, opinionResult, questionsResult] =
     await Promise.all([
       supabase
         .from("lists")
@@ -71,7 +71,7 @@ export default async function ListDetailPage({
   }
 
   // Build members list for header
-  const members = (memberCountResult.data ?? []).map((m: Record<string, unknown>) => ({
+  const members = (membersResult.data ?? []).map((m: Record<string, unknown>) => ({
     id: m.id as string,
     user_id: m.user_id as string,
     role: m.role as string,

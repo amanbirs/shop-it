@@ -78,7 +78,7 @@ export function InviteMemberDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-6">
+      <DialogContent className="max-w-2xl p-6">
         <DialogHeader>
           <DialogTitle className="line-clamp-1">
             Share &ldquo;{listName}&rdquo;
@@ -103,7 +103,7 @@ export function InviteMemberDialog({
                   value={role}
                   onValueChange={(v) => setRole(v as "editor" | "viewer")}
                 >
-                  <SelectTrigger className="w-[100px]">
+                  <SelectTrigger className="w-[100px] shrink-0">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -140,11 +140,9 @@ export function InviteMemberDialog({
               </span>
               <Separator className="flex-1" />
             </div>
-            <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2">
-              <code className="flex-1 truncate text-xs text-muted-foreground">
-                {typeof window !== "undefined"
-                  ? `${window.location.origin}/invite/${listId}`
-                  : `/invite/${listId}`}
+            <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 min-w-0 overflow-hidden">
+              <code className="flex-1 truncate text-xs text-muted-foreground min-w-0">
+                /invite/{listId}
               </code>
               <Button
                 variant="ghost"
