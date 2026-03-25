@@ -136,11 +136,13 @@ export async function answerContextQuestion(
     revalidatePath(`/lists/${question.list_id}/settings`)
 
     // Non-blocking: trigger smart suggestions every 5th answered question
-    supabase
-      .from("context_questions")
-      .select("id", { count: "exact", head: true })
-      .eq("list_id", question.list_id)
-      .eq("status", "answered")
+    Promise.resolve(
+      supabase
+        .from("context_questions")
+        .select("id", { count: "exact", head: true })
+        .eq("list_id", question.list_id)
+        .eq("status", "answered")
+    )
       .then(({ count }) => {
         if (count && count % 5 === 0) {
           triggerSuggestions(question.list_id, "context_answered").catch(() => {})

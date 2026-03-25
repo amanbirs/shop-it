@@ -97,11 +97,13 @@ export async function addProduct(
     regenerateAiComment(parsed.data.listId).catch(() => {})
 
     // Non-blocking: trigger smart suggestions every 3rd product added
-    supabase
-      .from("products")
-      .select("id", { count: "exact", head: true })
-      .eq("list_id", parsed.data.listId)
-      .is("archived_at", null)
+    Promise.resolve(
+      supabase
+        .from("products")
+        .select("id", { count: "exact", head: true })
+        .eq("list_id", parsed.data.listId)
+        .is("archived_at", null)
+    )
       .then(({ count }) => {
         if (count && count % 3 === 0) {
           triggerSuggestions(parsed.data.listId, "product_added").catch(() => {})

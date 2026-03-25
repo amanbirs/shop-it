@@ -31,9 +31,10 @@ vi.mock("@/lib/supabase/client", () => ({
   })),
 }))
 
-const mockGenerateContextQuestions = vi.fn(() => Promise.resolve())
+const mockGenerateContextQuestions = vi.fn((_listId: string, _productId: string) => Promise.resolve())
 vi.mock("@/lib/actions/context-questions", () => ({
-  generateContextQuestions: (...args: unknown[]) => mockGenerateContextQuestions(...args),
+  generateContextQuestions: (listId: string, productId: string) =>
+    mockGenerateContextQuestions(listId, productId),
 }))
 
 const { useRealtimeProducts } = await import("../../hooks/use-realtime-products")
