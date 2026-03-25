@@ -8,6 +8,24 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
     include: ["**/*.test.{ts,tsx}"],
+    exclude: ["node_modules", ".next", "supabase/functions"],
+    coverage: {
+      provider: "v8",
+      include: [
+        "lib/actions/**",
+        "lib/validators/**",
+        "lib/ai/**",
+        "lib/utils.ts",
+        "lib/constants.ts",
+        "app/api/**",
+        "hooks/**",
+      ],
+      exclude: [
+        "lib/supabase/**",
+        "components/ui/**",
+        "**/*.test.{ts,tsx}",
+      ],
+    },
   },
   resolve: {
     alias: {
