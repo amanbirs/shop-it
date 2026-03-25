@@ -1,0 +1,117 @@
+# design-language.yml — ShopIt Design Language Configuration
+# Used by the design-researcher agent to generate consistent, implementation-ready page specs.
+# See ~/.claude/agents/design-researcher.md for the agent that consumes this file.
+
+meta:
+  project: "ShopIt"
+  description: "Collaborative purchase research tool that turns product URLs into structured, comparable cards"
+  target_audience: "Families deciding on big purchases together"
+  platform_priority: "Mobile-first, desktop-enhanced"
+
+inspirations:
+  - name: "Linear"
+    what_to_borrow: "Information density without clutter, keyboard-first + mouse-friendly, monochromatic UI with selective color, subtle purposeful animation (150-200ms), sidebar navigation, 8px spacing scale"
+  - name: "Notion"
+    what_to_borrow: "Progressive disclosure (blank canvas → opt-in complexity), hover-to-reveal actions, typography as hierarchy, collaborative presence (avatar stacks), slash command palette, empty states that guide"
+  - name: "Airbnb Wishlists"
+    what_to_borrow: "Heart/save interaction (instant, satisfying), named lists as containers, grid of cards with hero images, shared lists with avatars, dual view modes"
+  - name: "Google Shopping"
+    what_to_borrow: "Product cards with key stats visible, spec comparison tables, price range display, trust signals (ratings, reviews, badges)"
+  - name: "Things 3"
+    what_to_borrow: "Simplicity, one-tap interactions, satisfying completion animations"
+  - name: "Arc Browser"
+    what_to_borrow: "Spaces as contexts, beautiful dark mode"
+
+principles:
+  - "Craft over convention — polished like Linear/Notion, not Bootstrap CRUD"
+  - "Component-heavy — small, single-responsibility, reusable, testable"
+  - "Dark and light mode as first-class citizens — both designed simultaneously"
+  - "Progressive disclosure — show what matters now, reveal complexity on demand"
+  - "Speed is a feature — optimistic UI, skeleton loading, Server Components, no waterfalls"
+  - "Mobile-first, desktop-enhanced — primary use case is mobile"
+  - "Accessibility by default — WCAG AA contrast, visible focus rings, screen reader support"
+  - "Delight in details — micro-interactions provide feedback (subtle bounce on shortlist, smooth slides on Realtime updates)"
+
+palette:
+  mode: "light-and-dark"
+  dark_mode_approach: "No pure black — use dark greys (#0a0a0a to #171717). No pure white text — use off-white (#fafafa, #e5e5e5). Desaturate accent colors ~20% in dark mode. Elevation = lighter shade, not shadow. Reduce image brightness (brightness-90). Maintain WCAG AA contrast (4.5:1 body, 3:1 large text)."
+  tokens:
+    background: { light: "hsl(0 0% 100%)", dark: "hsl(240 10% 3.9%)" }
+    foreground: { light: "hsl(240 10% 3.9%)", dark: "hsl(0 0% 98%)" }
+    card: { light: "hsl(0 0% 100%)", dark: "hsl(240 10% 3.9%)" }
+    primary: { light: "hsl(240 5.9% 10%)", dark: "hsl(0 0% 98%)" }
+    secondary: { light: "hsl(240 4.8% 95.9%)", dark: "hsl(240 3.7% 15.9%)" }
+    muted: { light: "hsl(240 4.8% 95.9%)", dark: "hsl(240 3.7% 15.9%)" }
+    accent: { light: "hsl(240 4.8% 95.9%)", dark: "hsl(240 3.7% 15.9%)" }
+    destructive: { light: "hsl(0 84.2% 60.2%)", dark: "hsl(0 62.8% 30.6%)" }
+    border: { light: "hsl(240 5.9% 90%)", dark: "hsl(240 3.7% 15.9%)" }
+    ring: { light: "hsl(240 5.9% 10%)", dark: "hsl(240 4.9% 83.9%)" }
+  custom_tokens:
+    shortlisted: { light: "amber-500", dark: "amber-400", usage: "Shortlisted product indicator" }
+    purchased: { light: "green-600", dark: "green-400", usage: "Purchased product indicator" }
+    ai-accent: { light: "violet-600", dark: "violet-400", usage: "AI-generated content highlight" }
+    extraction-pending: { light: "amber-500 pulse", dark: "amber-400 pulse", usage: "Product extraction in progress" }
+
+typography:
+  font_family: "Geist Sans (UI text), Geist Mono (code, data, prices, IDs)"
+  scale: "Tailwind defaults"
+  hierarchy_approach: "Typography and spacing create hierarchy — not color. Use font-weight and size, not colored headings."
+
+spacing:
+  scale: "8px base (Tailwind default: 1 = 4px, 2 = 8px)"
+  density: "medium"
+  radius: "var(--radius) — consistent border-radius via CSS variable"
+
+component_library:
+  name: "shadcn/ui"
+  primitives: "Radix UI"
+  styling: "Tailwind CSS 4"
+  icon_set: "Lucide React"
+  toast: "Sonner"
+  forms: "React Hook Form + Zod"
+  command_palette: "cmdk"
+  url_state: "nuqs"
+  theme_provider: "next-themes"
+  composition_pattern: "Composition over props bloat — compound components, not mega-prop components"
+
+animation:
+  library: "Framer Motion (physics-based and complex), Tailwind transitions (simple hover/color)"
+  philosophy: "Animations communicate state change or provide feedback. Never decorative. Never blocking. Always under 300ms."
+  defaults:
+    hover: { duration: "150ms", easing: "ease-in-out", tool: "Tailwind transition-colors" }
+    sheet_open_close: { duration: "300ms", easing: "spring(0.3, 0.8)", tool: "Framer Motion" }
+    card_appear: { duration: "200ms", easing: "ease-out", tool: "Framer Motion AnimatePresence" }
+    skeleton_shimmer: { duration: "2s loop", easing: "linear", tool: "Tailwind animate-pulse" }
+    shortlist_toggle: { duration: "200ms", easing: "spring bounce", tool: "CSS transform scale" }
+    toast: { duration: "200ms", tool: "Sonner (built-in)" }
+    stagger_children: { delay: "50ms between items", tool: "Framer Motion staggerChildren" }
+
+layout:
+  navigation: "Sidebar (desktop), bottom tab bar (mobile)"
+  content_pattern: "Split panel — product list left (60%), detail panel right (40%)"
+  grid:
+    with_detail_panel: "2 columns"
+    without_detail_panel: "3 columns"
+    mobile: "1 column"
+    tablet: "2 columns"
+  breakpoints:
+    mobile: "< 640px — single column, bottom nav, sheets for detail"
+    tablet: "640-1024px — 2-column grid, collapsible sidebar"
+    desktop: "> 1024px — sidebar + 2-3 column grid + detail panel"
+
+interaction_patterns:
+  - name: "URL Paste"
+    flow: "Paste → skeleton appears → Realtime updates → smooth crossfade to real data"
+  - name: "Shortlisting"
+    flow: "Tap → optimistic fill + scale animation → server confirms → Realtime to others"
+  - name: "Product Detail"
+    flow: "Tap card → sheet slides (mobile) or panel opens (desktop)"
+  - name: "Expert Opinion"
+    flow: "Get Expert Opinion → loading state → streams in section by section → persists"
+  - name: "Command Palette"
+    flow: "Cmd+K → switch lists, search products, create list, toggle theme, navigate"
+
+output:
+  spec_directory: "docs/system-guide"
+  naming_convention: "numbered"
+  file_pattern: "06{letter}-page-{name}.md"
