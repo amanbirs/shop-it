@@ -5,7 +5,7 @@ import { SuggestionCard } from "../ai/suggestion-card"
 import type { ProductSuggestion } from "@/lib/types/database"
 
 vi.mock("next/image", () => ({
-  default: (props: Record<string, unknown>) => <img {...props} />,
+  default: ({ alt, ...props }: Record<string, unknown>) => <div role="img" aria-label={alt as string} {...props} />,
 }))
 
 const baseSuggestion: ProductSuggestion = {

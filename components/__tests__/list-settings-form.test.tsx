@@ -64,11 +64,6 @@ const defaultProps = {
 }
 
 // Helpers
-function getNameInput() {
-  // The "Name" label, there might be duplicates from shadcn
-  return screen.getAllByDisplayValue("TV Shopping")[0]
-}
-
 function getSaveButton() {
   return screen.getAllByRole("button").find(
     (b) => b.textContent?.includes("Save Settings")
@@ -159,11 +154,6 @@ describe("ListSettingsForm", () => {
 
     // When not owner, the entire Danger Zone section is not rendered.
     // Use container-scoped query to avoid cross-test DOM pollution.
-    const archiveElements = container.querySelectorAll("*")
-    const archiveTexts = Array.from(archiveElements).filter(
-      (el) => el.textContent === "Archive this list" && el.children.length <= 1
-    )
-    // The AlertDialogTrigger has an SVG child + text, so check for the trigger button
     const archiveTrigger = container.querySelector("[data-slot='alert-dialog-trigger']")
     expect(archiveTrigger).toBeNull()
   })

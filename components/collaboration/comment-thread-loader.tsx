@@ -52,7 +52,7 @@ export function CommentThreadLoader({
 
   // Initial fetch
   useEffect(() => {
-    fetchComments()
+    fetchComments() // eslint-disable-line react-hooks/set-state-in-effect -- initial data load
   }, [fetchComments])
 
   // Realtime subscription — refetch on any change

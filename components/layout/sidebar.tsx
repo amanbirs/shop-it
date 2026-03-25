@@ -29,7 +29,7 @@ export function Sidebar({ ownedLists, sharedLists }: SidebarProps) {
   // Read from localStorage after mount to avoid hydration mismatch
   useEffect(() => {
     const stored = localStorage.getItem("sidebar-collapsed")
-    if (stored === "true") setCollapsed(true)
+    if (stored === "true") setCollapsed(true) // eslint-disable-line react-hooks/set-state-in-effect -- hydration-safe localStorage read
   }, [])
 
   useEffect(() => {

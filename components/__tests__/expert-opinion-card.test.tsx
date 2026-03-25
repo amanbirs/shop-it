@@ -6,7 +6,7 @@ import type { ListAiOpinion, Product } from "@/lib/types/database"
 // Mock next/image
 import { vi } from "vitest"
 vi.mock("next/image", () => ({
-  default: (props: Record<string, unknown>) => <img {...props} />,
+  default: ({ alt, ...props }: Record<string, unknown>) => <div role="img" aria-label={alt as string} {...props} />,
 }))
 
 const baseProduct = (overrides: Partial<Product> = {}): Product => ({
@@ -121,7 +121,7 @@ describe("ExpertOpinionCard", () => {
 
   it("handles null verdict gracefully", () => {
     const noVerdict = { ...baseOpinion, verdict: null }
-    const { container } = render(
+    render(
       <ExpertOpinionCard opinion={noVerdict} productNames={productNames} products={[product1, product2]} />
     )
     // Should not crash and should still render picks

@@ -4,9 +4,9 @@ import userEvent from "@testing-library/user-event"
 import { ProductCard } from "../products/product-card"
 import type { Product } from "@/lib/types/database"
 
-// Mock next/image to render a plain img
+// Mock next/image — use div to avoid no-img-element lint rule
 vi.mock("next/image", () => ({
-  default: (props: Record<string, unknown>) => <img {...props} />,
+  default: ({ alt, ...props }: Record<string, unknown>) => <div role="img" aria-label={alt as string} {...props} />,
 }))
 
 const baseProduct: Product = {
