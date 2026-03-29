@@ -7,6 +7,7 @@ import {
   buildSpecAnalysisPrompt,
   buildContextQuestionsPrompt,
   buildSmartSuggestionsPrompt,
+  buildChatInsightsPrompt,
 } from "../prompts"
 
 describe("buildExtractionPrompt", () => {
@@ -388,5 +389,135 @@ describe("buildSpecAnalysisPrompt", () => {
     expect(prompt).toContain("BAD:")
     expect(prompt).toContain("GOOD:")
     expect(prompt).toContain("rank or compare")
+  })
+})
+
+// ========================================================================
+// buildChatInsightsPrompt
+// ========================================================================
+
+describe("buildChatInsightsPrompt", () => {
+  const baseParams = {
+    listName: "AC Shopping",
+    category: "electronics",
+    messages: [
+      { role: "user", content: "Is the LG quieter than the Samsung?" },
+      { role: "assistant", content: "Yes, the LG operates at 38dB vs 45dB." },
+    ],
+    existingInsights: null,
+  }
+
+  it("includes conversation messages", () => {
+    const prompt = buildChatInsightsPrompt(baseParams)
+    expect(prompt).toContain("Is the LG quieter")
+    expect(prompt).toContain("38dB vs 45dB")
+  })
+
+  it("includes list name and category", () => {
+    const prompt = buildChatInsightsPrompt(baseParams)
+    expect(prompt).toContain("AC Shopping")
+    expect(prompt).toContain("electronics")
+  })
+
+  it("includes existing insights when provided", () => {
+    const prompt = buildChatInsightsPrompt({
+      ...baseParams,
+      existingInsights: "- User prefers inverter technology",
+    })
+    expect(prompt).toContain("User prefers inverter technology")
+    expect(prompt).toContain("Previous insights")
+  })
+
+  it("omits existing insights section when null", () => {
+    const prompt = buildChatInsightsPrompt(baseParams)
+    expect(prompt).not.toContain("Previous insights")
+  })
+
+  it("instructs bullet-point format with max 10 bullets", () => {
+    const prompt = buildChatInsightsPrompt(baseParams)
+    expect(prompt).toContain("bullet-point")
+    expect(prompt).toContain("max 10")
+  })
+})
+
+// ========================================================================
+// chatInsights integration in existing prompts
+// ========================================================================
+
+describe("chatInsights in buildExpertOpinionPrompt", () => {
+  const baseOpinionParams = {
+    products: [
+      {
+        id: "p1",
+        title: "LG AC",
+        brand: "LG",
+        price_min: 35000,
+        price_max: null,
+        currency: "INR",
+        specs: { type: "Inverter" } as Record<string, string>,
+        pros: ["Quiet"],
+        cons: ["Pricey"],
+        rating: 4.5,
+        review_count: 200,
+        ai_summary: "Efficient and quiet",
+      },
+    ],
+    budgetMin: 30000,
+    budgetMax: 50000,
+    purchaseBy: null,
+    category: "AC",
+    priorities: ["noise level"],
+    userContext: {},
+  }
+
+  it("includes chat insights when provided", () => {
+    const prompt = buildExpertOpinionPrompt({
+      ...baseOpinionParams,
+      chatInsights: "- Prefers LG for noise\n- Willing to stretch budget by 5K",
+    })
+    expect(prompt).toContain("Prefers LG for noise")
+    expect(prompt).toContain("stretch budget by 5K")
+  })
+
+  it("omits chat insights section when not provided", () => {
+    const prompt = buildExpertOpinionPrompt(baseOpinionParams)
+    expect(prompt).not.toContain("Insights from user")
+  })
+})
+
+describe("chatInsights in buildSmartSuggestionsPrompt", () => {
+  const baseSuggParams = {
+    products: [
+      {
+        title: "LG AC",
+        brand: "LG",
+        url: "https://amazon.in/lg",
+        price_min: 35000,
+        price_max: null,
+        currency: "INR",
+        is_shortlisted: false,
+        ai_verdict: "Best for quiet rooms",
+      },
+    ],
+    category: "AC",
+    priorities: ["noise level"],
+    budgetMin: 30000,
+    budgetMax: 50000,
+    purchaseBy: null,
+    userContext: {},
+    contextAnswers: [],
+  }
+
+  it("includes chat insights when provided", () => {
+    const prompt = buildSmartSuggestionsPrompt({
+      ...baseSuggParams,
+      chatInsights: "- User has a small bedroom, needs low noise",
+    })
+    expect(prompt).toContain("small bedroom, needs low noise")
+  })
+
+  it("omits chat insights section when not provided", () => {
+    const prompt = buildSmartSuggestionsPrompt(baseSuggParams)
+    expect(prompt).not.toContain("Insights from user")
   })
 })

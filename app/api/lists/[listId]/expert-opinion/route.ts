@@ -65,7 +65,7 @@ export async function POST(
     // Fetch list metadata
     const { data: list } = await supabase
       .from("lists")
-      .select("budget_min, budget_max, purchase_by, category, priorities")
+      .select("budget_min, budget_max, purchase_by, category, priorities, chat_insights")
       .eq("id", listId)
       .single()
 
@@ -105,6 +105,7 @@ export async function POST(
       category: list?.category ?? null,
       priorities: (list?.priorities as string[]) ?? [],
       userContext: (profile?.context as Record<string, unknown>) ?? {},
+      chatInsights: list?.chat_insights ?? null,
       specAnalysis: specAnalysis ?? null,
     })
 

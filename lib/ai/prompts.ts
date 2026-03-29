@@ -111,6 +111,7 @@ export function buildExpertOpinionPrompt(params: {
   category: string | null
   priorities: string[]
   userContext: Record<string, unknown>
+  chatInsights?: string | null
   specAnalysis?: {
     dimensions: Array<{
       name: string
@@ -164,6 +165,7 @@ ${params.budgetMin ? `Budget: ${params.budgetMin}-${params.budgetMax} ${params.p
 ${params.purchaseBy ? `Purchase deadline: ${params.purchaseBy}` : ""}
 ${params.priorities.length ? `User priorities (in order of importance): ${params.priorities.join(", ")}` : ""}
 ${Object.keys(params.userContext).length ? `User context: ${JSON.stringify(params.userContext)}` : ""}
+${params.chatInsights ? `\nInsights from user's chat conversations (factor these into your recommendations):\n${params.chatInsights}\n` : ""}
 ${dimensionsSection}
 Products:
 ${productData}
@@ -353,6 +355,7 @@ export function buildSmartSuggestionsPrompt(params: {
   purchaseBy: string | null
   userContext: Record<string, unknown>
   contextAnswers: Array<{ question: string; answer: string }>
+  chatInsights?: string | null
 }): string {
   const shortlisted = params.products.filter((p) => p.is_shortlisted)
   const currency = params.products[0]?.currency ?? "INR"
@@ -387,7 +390,7 @@ ${params.purchaseBy ? `Purchase deadline: ${params.purchaseBy}` : ""}
 ${params.priorities.length ? `Priorities (in order of importance): ${params.priorities.join(", ")}` : ""}
 ${userContextText}
 ${contextAnswerText}
-
+${params.chatInsights ? `\nInsights from user's chat conversations (use to tailor suggestions):\n${params.chatInsights}\n` : ""}
 Current products in their list:
 ${productList}
 ${shortlistedSummary}
@@ -424,4 +427,31 @@ Return ONLY valid JSON matching this exact schema (no markdown, no explanation o
 }
 
 If no suggestions are needed, return: {"suggestions": []}`
+}
+
+export function buildChatInsightsPrompt(params: {
+  listName: string
+  category: string
+  messages: Array<{ role: string; content: string }>
+  existingInsights: string | null
+}): string {
+  const conversation = params.messages
+    .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
+    .join("\n")
+
+  return `You are analyzing a purchase research conversation for the list "${params.listName}" (category: ${params.category}).
+
+Extract the key decision signals from this conversation — preferences, constraints, comparisons, and conclusions the user expressed. These insights will be fed into future AI recommendations, so focus on what would help a purchase advisor give better suggestions.
+
+${params.existingInsights ? `Previous insights (update/extend, don't repeat):\n${params.existingInsights}\n` : ""}
+Conversation:
+${conversation}
+
+Rules:
+- Return a concise bullet-point list of key insights (max 10 bullets)
+- Each bullet should be a specific, actionable signal (e.g., "Prefers LG over Samsung due to noise concerns", "Willing to stretch budget by 5K for better energy rating")
+- Drop any previous insights that the conversation contradicts
+- If the conversation has no meaningful decision signals, return "No actionable insights yet."
+- Do NOT include greetings, small talk, or generic statements
+- Plain text only, no markdown headers`
 }

@@ -75,6 +75,7 @@ create table public.lists (
   -- AI-generated content
   ai_comment      text,                    -- dynamic one-liner displayed on dashboard card, regenerated on list state change
   ai_title_edited boolean default false,   -- true once user manually edits the AI-generated hype title
+  chat_insights   text,                    -- AI-distilled key decision signals from chat conversations, fed into expert opinion and suggestions
 
   owner_id    uuid not null references public.profiles(id),
   created_at  timestamptz not null default now(),
@@ -312,6 +313,30 @@ create table public.list_ai_opinions (
 
 ---
 
+### 7. `chat_messages`
+
+Per-list AI chat history. Enables conversation continuity across sessions.
+
+```sql
+create table public.chat_messages (
+  id          uuid primary key default gen_random_uuid(),
+  list_id     uuid not null references public.lists(id) on delete cascade,
+  user_id     uuid not null references public.profiles(id) on delete cascade,
+  role        text not null check (role in ('user', 'assistant')),
+  content     text not null,
+  created_at  timestamptz not null default now()
+);
+```
+
+**Considerations:**
+
+- **Scoped to lists, not sessions.** A chat is tied to a list — there's no separate "thread" concept. Opening the chat panel loads all messages for that list, ordered by `created_at`. This means different family members see the same conversation history.
+- **`user_id` on assistant messages** — stores the user who triggered the assistant response, not "the assistant." Useful for attributing who asked what in a shared list.
+- **No `updated_at` or soft delete.** Chat messages are append-only. Editing or deleting chat history adds complexity with no clear value for a purchase research tool.
+- **`chat_insights` on `lists`** — rather than querying all messages every time the AI needs context, we distill key decision signals into `lists.chat_insights` when the user closes the chat panel. This avoids bloating prompts with full conversation history. Updated incrementally — new insights extend existing ones, contradictions replace old ones.
+
+---
+
 ## Indexes
 
 ```sql
@@ -326,6 +351,9 @@ create index idx_list_members_list_id on list_members(list_id);
 
 -- Comments by product
 create index idx_comments_product_id on comments(product_id);
+
+-- Chat messages by list (chronological)
+create index idx_chat_messages_list_id on chat_messages(list_id, created_at);
 
 -- list_ai_opinions already has a unique constraint on list_id (acts as index)
 ```
@@ -346,6 +374,7 @@ Supabase RLS policies control who sees what, enforced at the database level.
 | `products` | Users can see/add/edit products in lists they're a member of (editor+) |
 | `comments` | Same as products; users can only edit/delete their own comments |
 | `list_ai_opinions` | Same as lists — visible to all members of the list; only system/AI writes |
+| `chat_messages` | Members can read messages for their lists; editors+ can insert |
 
 **Key insight:** Almost every policy joins through `list_members`. This is the access control backbone.
 
@@ -353,12 +382,9 @@ Supabase RLS policies control who sees what, enforced at the database level.
 
 ## v2 Considerations (Agentic Features)
 
-The current schema is forward-compatible with v2 agentic chat. When we add it, we'd likely add:
+Chat persistence is now implemented via `chat_messages` (see § 7) and `lists.chat_insights`. Remaining v2 additions:
 
 ```
-conversations (list-level or product-level AI chat history)
-  - id, list_id, product_id (nullable), user_id, role (user/assistant), content, created_at
-
 ai_research_tasks (background research jobs)
   - id, list_id, query, status, result (jsonb), created_at
 ```

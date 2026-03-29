@@ -3,7 +3,9 @@
 import { createClient } from "@/lib/supabase/server"
 import { getAuthenticatedUser } from "@/lib/supabase/auth"
 import { callGemini } from "@/lib/ai/gemini"
+import { buildChatInsightsPrompt } from "@/lib/ai/prompts"
 import type { ActionResult } from "@/lib/types/actions"
+import type { ChatMessage } from "@/lib/types/database"
 
 type ChatInput = {
   listId: string
@@ -87,12 +89,109 @@ User: ${input.message}
 Respond concisely and helpfully. Reference specific products by name. If you don't know something, say so. Keep responses under 150 words unless the user asks for detail.`
 
     const response = await callGemini(prompt)
-    return { success: true, data: { response: response.trim() } }
+    const trimmedResponse = response.trim()
+
+    // Persist both messages to the database
+    await supabase.from("chat_messages").insert([
+      {
+        list_id: input.listId,
+        user_id: user.id,
+        role: "user",
+        content: input.message,
+      },
+      {
+        list_id: input.listId,
+        user_id: user.id,
+        role: "assistant",
+        content: trimmedResponse,
+      },
+    ])
+
+    return { success: true, data: { response: trimmedResponse } }
   } catch (err) {
     console.error("[callChatAction] Failed:", err)
     return {
       success: false,
       error: { code: "AI_ERROR", message: "Failed to get a response" },
+    }
+  }
+}
+
+export async function loadChatMessages(
+  listId: string
+): Promise<ActionResult<{ messages: ChatMessage[] }>> {
+  const user = await getAuthenticatedUser()
+  if (!user) {
+    return { success: false, error: { code: "UNAUTHORIZED", message: "Please sign in" } }
+  }
+
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .select("*")
+    .eq("list_id", listId)
+    .order("created_at", { ascending: true })
+
+  if (error) {
+    console.error("[loadChatMessages] Failed:", error)
+    return { success: false, error: { code: "INTERNAL_ERROR", message: "Failed to load messages" } }
+  }
+
+  return { success: true, data: { messages: data ?? [] } }
+}
+
+export async function updateChatInsights(
+  listId: string
+): Promise<ActionResult<{ insights: string }>> {
+  const user = await getAuthenticatedUser()
+  if (!user) {
+    return { success: false, error: { code: "UNAUTHORIZED", message: "Please sign in" } }
+  }
+
+  const supabase = await createClient()
+
+  // Fetch recent chat messages
+  const { data: messages } = await supabase
+    .from("chat_messages")
+    .select("role, content")
+    .eq("list_id", listId)
+    .order("created_at", { ascending: true })
+    .limit(50)
+
+  if (!messages?.length) {
+    return { success: true, data: { insights: "" } }
+  }
+
+  // Fetch list context for the prompt
+  const { data: list } = await supabase
+    .from("lists")
+    .select("name, category, chat_insights")
+    .eq("id", listId)
+    .single()
+
+  try {
+    const prompt = buildChatInsightsPrompt({
+      listName: list?.name ?? "Unknown",
+      category: list?.category ?? "general",
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      existingInsights: list?.chat_insights ?? null,
+    })
+
+    const insights = await callGemini(prompt)
+    const trimmedInsights = insights.trim()
+
+    await supabase
+      .from("lists")
+      .update({ chat_insights: trimmedInsights })
+      .eq("id", listId)
+
+    return { success: true, data: { insights: trimmedInsights } }
+  } catch (err) {
+    console.error("[updateChatInsights] Failed:", err)
+    return {
+      success: false,
+      error: { code: "AI_ERROR", message: "Failed to extract insights" },
     }
   }
 }

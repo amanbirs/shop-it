@@ -39,6 +39,7 @@ interface ListRow {
   budget_min: number | null;
   budget_max: number | null;
   purchase_by: string | null;
+  chat_insights: string | null;
   owner_id: string;
 }
 
@@ -288,7 +289,7 @@ ${list.purchase_by ? `Purchase deadline: ${list.purchase_by}` : ""}
 ${list.priorities?.length ? `Priorities (in order of importance): ${list.priorities.join(", ")}` : ""}
 ${userContextText}
 ${contextAnswerText}
-
+${list.chat_insights ? `\nInsights from user's chat conversations (use to tailor suggestions):\n${list.chat_insights}\n` : ""}
 Current products in their list:
 ${productList}
 ${shortlistedSummary}
@@ -433,7 +434,7 @@ async function suggestProducts(payload: SuggestPayload): Promise<number> {
   // -------------------------------------------------------------------------
   const { data: list, error: listError } = await supabase
     .from("lists")
-    .select("category, priorities, budget_min, budget_max, purchase_by, owner_id")
+    .select("category, priorities, budget_min, budget_max, purchase_by, chat_insights, owner_id")
     .eq("id", listId)
     .single();
 

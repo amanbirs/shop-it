@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useRef, useEffect, useTransition } from "react"
+import { useState, useRef, useEffect, useTransition, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, Send, Loader2 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { callChatAction } from "@/lib/actions/chat"
+import { callChatAction, loadChatMessages, updateChatInsights } from "@/lib/actions/chat"
 
 type Message = {
   id: string
@@ -25,8 +25,32 @@ export function ChatPanel({ open, onClose, listId }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isPending, startTransition] = useTransition()
+  const [isLoading, setIsLoading] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const hasLoadedRef = useRef(false)
+  // Track whether new messages were added this session (to decide if insights need updating)
+  const hasNewMessagesRef = useRef(false)
+
+  // Load persisted messages when panel opens
+  useEffect(() => {
+    if (open && !hasLoadedRef.current) {
+      hasLoadedRef.current = true
+      setIsLoading(true)
+      loadChatMessages(listId).then((result) => {
+        if (result.success && result.data.messages.length > 0) {
+          setMessages(
+            result.data.messages.map((m) => ({
+              id: m.id,
+              role: m.role,
+              content: m.content,
+            }))
+          )
+        }
+        setIsLoading(false)
+      })
+    }
+  }, [open, listId])
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -41,6 +65,15 @@ export function ChatPanel({ open, onClose, listId }: ChatPanelProps) {
       setTimeout(() => inputRef.current?.focus(), 100)
     }
   }, [open])
+
+  const handleClose = useCallback(() => {
+    // Extract insights in the background when closing, only if new messages were sent
+    if (hasNewMessagesRef.current) {
+      hasNewMessagesRef.current = false
+      updateChatInsights(listId)
+    }
+    onClose()
+  }, [listId, onClose])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,6 +96,7 @@ export function ChatPanel({ open, onClose, listId }: ChatPanelProps) {
       })
 
       if (result.success) {
+        hasNewMessagesRef.current = true
         setMessages((prev) => [
           ...prev,
           {
@@ -101,8 +135,9 @@ export function ChatPanel({ open, onClose, listId }: ChatPanelProps) {
               input={input}
               setInput={setInput}
               isPending={isPending}
+              isLoading={isLoading}
               onSubmit={handleSubmit}
-              onClose={onClose}
+              onClose={handleClose}
               scrollRef={scrollRef}
               inputRef={inputRef}
             />
@@ -121,8 +156,9 @@ export function ChatPanel({ open, onClose, listId }: ChatPanelProps) {
               input={input}
               setInput={setInput}
               isPending={isPending}
+              isLoading={isLoading}
               onSubmit={handleSubmit}
-              onClose={onClose}
+              onClose={handleClose}
               scrollRef={scrollRef}
               inputRef={inputRef}
             />
@@ -138,6 +174,7 @@ function ChatContent({
   input,
   setInput,
   isPending,
+  isLoading,
   onSubmit,
   onClose,
   scrollRef,
@@ -147,6 +184,7 @@ function ChatContent({
   input: string
   setInput: (v: string) => void
   isPending: boolean
+  isLoading: boolean
   onSubmit: (e: React.FormEvent) => void
   onClose: () => void
   scrollRef: React.RefObject<HTMLDivElement | null>
@@ -171,7 +209,13 @@ function ChatContent({
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 py-3 space-y-4"
       >
-        {messages.length === 0 && (
+        {isLoading && (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        )}
+
+        {!isLoading && messages.length === 0 && (
           <div className="text-center py-8">
             <p className="text-sm text-muted-foreground">
               Ask anything about the products in this list.
