@@ -99,6 +99,7 @@ export async function requestSuggestions(
 
   try {
     await invokeSuggestEdgeFunction(parsed.data.listId, "manual")
+    revalidatePath(`/lists/${parsed.data.listId}`)
     return { success: true, data: { triggered: true } }
   } catch (err) {
     console.error("[requestSuggestions] Failed:", err)

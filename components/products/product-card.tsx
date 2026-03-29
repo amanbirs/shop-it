@@ -85,7 +85,7 @@ export function ProductCard({
           {product.image_url ? (
             <div className="relative h-40 w-full rounded-md overflow-hidden bg-muted">
               <Image
-                src={product.image_url}
+                src={product.image_url.replace(/^http:\/\//, "https://")}
                 alt={product.title ?? "Product image"}
                 fill
                 className="object-contain dark:brightness-90"

@@ -44,7 +44,7 @@ export function SuggestionCard({
             {suggestion.image_url ? (
               <div className="relative h-40 w-full rounded-md overflow-hidden bg-muted">
                 <Image
-                  src={suggestion.image_url}
+                  src={suggestion.image_url.replace(/^http:\/\//, "https://")}
                   alt={suggestion.title}
                   fill
                   className="object-contain dark:brightness-90"

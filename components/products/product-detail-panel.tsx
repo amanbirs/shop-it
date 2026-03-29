@@ -70,7 +70,7 @@ export function ProductDetailPanel({
       {product.image_url && isReady && (
         <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-muted">
           <Image
-            src={product.image_url}
+            src={product.image_url.replace(/^http:\/\//, "https://")}
             alt={product.title ?? "Product image"}
             fill
             className="object-contain dark:brightness-90"

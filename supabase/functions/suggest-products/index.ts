@@ -97,6 +97,154 @@ function extractDomain(url: string): string | null {
   }
 }
 
+/**
+ * Fetch a page and extract the og:image URL from its HTML.
+ * Returns { reachable, imageUrl }.
+ * Uses a 5s timeout to avoid blocking on slow pages.
+ */
+async function fetchPageAndOgImage(
+  url: string,
+): Promise<{ reachable: boolean; imageUrl: string | null }> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; ShopItBot/1.0; +https://shopit.app)",
+        Accept: "text/html",
+      },
+      redirect: "follow",
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      return { reachable: false, imageUrl: null };
+    }
+
+    const html = await res.text();
+    const ogMatch = html.match(
+      /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
+    ) ?? html.match(
+      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
+    );
+
+    let imageUrl = ogMatch?.[1] ?? null;
+    // Upgrade http:// to https:// — most CDNs serve both, and next/image only allows https
+    if (imageUrl?.startsWith("http://")) {
+      imageUrl = imageUrl.replace("http://", "https://");
+    }
+
+    return { reachable: true, imageUrl };
+  } catch {
+    return { reachable: false, imageUrl: null };
+  }
+}
+
+/**
+ * When the AI-provided URL is broken, search for the correct PRODUCT PAGE URL.
+ * Uses Gemini with Google Search grounding, then also checks grounding metadata
+ * for direct product page links (often more reliable than the AI's text output).
+ */
+async function findCorrectUrl(
+  title: string,
+  brand: string | null,
+  domain: string | null,
+): Promise<{ url: string; imageUrl: string | null } | null> {
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!apiKey) return null;
+
+  const apiUrl =
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+
+  try {
+    const res = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: `Search for the exact product page where I can BUY this specific product:
+
+Product: "${title}"${brand ? `\nBrand: ${brand}` : ""}
+
+IMPORTANT:
+- I need the URL of the SPECIFIC PRODUCT PAGE, not the brand homepage or a category page.
+- The URL should lead to a page where I can see the price and add to cart.
+- Look on major retailers like Amazon, Flipkart, or the brand's official store.
+- The URL path should contain the product name or a product ID (e.g., /dp/B0xxx, /product/xxx).
+${domain ? `- Prefer results from ${domain} if available.` : ""}
+
+Return ONLY a JSON object. No explanation, no markdown fences.
+{"url": "https://www.example.com/product/specific-product-page"}
+
+If you truly cannot find a specific product page, return: {"url": null}`,
+          }],
+        }],
+        tools: [{ google_search: {} }],
+      }),
+    });
+
+    if (!res.ok) return null;
+
+    const data: GeminiGroundedResponse = await res.json();
+    const candidate = data.candidates?.[0];
+    if (!candidate) return null;
+
+    // Strategy 1: Check grounding metadata for product page URLs
+    // These are the actual URLs Google Search found — often more reliable than the AI's text
+    const groundingUrls = (candidate.groundingMetadata?.groundingChunks ?? [])
+      .map((c) => c.web?.uri)
+      .filter((u): u is string => !!u)
+      .filter((u) => {
+        // Filter for URLs that look like product pages, not homepages
+        const path = new URL(u).pathname;
+        return path.length > 10 && path !== "/";
+      });
+
+    // Strategy 2: Parse the AI's text response
+    const text = candidate.content?.parts?.[0]?.text ?? "";
+    const cleaned = text.trim().replace(/^```json\s*/i, "").replace(/```\s*$/i, "");
+    let aiUrl: string | null = null;
+    try {
+      const parsed = JSON.parse(cleaned);
+      aiUrl = parsed?.url ?? null;
+    } catch {
+      // AI didn't return valid JSON — rely on grounding URLs
+    }
+
+    // Try candidates in order: AI answer first, then grounding URLs
+    const candidates = [
+      aiUrl,
+      ...groundingUrls,
+    ].filter((u): u is string => !!u && u.startsWith("http"));
+
+    // Validate each candidate until we find one that works
+    for (const candidateUrl of candidates) {
+      // Skip obvious homepage URLs
+      try {
+        const path = new URL(candidateUrl).pathname;
+        if (path === "/" || path === "") continue;
+      } catch {
+        continue;
+      }
+
+      const { reachable, imageUrl } = await fetchPageAndOgImage(candidateUrl);
+      if (reachable) {
+        return { url: candidateUrl, imageUrl };
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Prompt builder (inline — Deno cannot import from Next.js lib/)
 // ---------------------------------------------------------------------------
@@ -382,26 +530,69 @@ async function suggestProducts(payload: SuggestPayload): Promise<number> {
 
   // Filter out suggestions whose URL is already in the product list
   const existingUrls = new Set(products.map((p) => p.url.toLowerCase()));
-  const filtered = suggestions.filter(
+  const deduped = suggestions.filter(
     (s) => s.url && !existingUrls.has(s.url.toLowerCase()),
   );
 
-  if (filtered.length === 0) {
+  if (deduped.length === 0) {
     console.log(`List ${listId}: all suggestions were duplicates.`);
     return 0;
   }
 
-  const rows = filtered.map((s) => ({
+  // -------------------------------------------------------------------------
+  // 8. Validate URLs, repair broken ones, and fetch OG images — in parallel
+  // -------------------------------------------------------------------------
+  const enriched = await Promise.all(
+    deduped.map(async (s) => {
+      // Step 1: Try the AI-provided URL
+      const { reachable, imageUrl } = await fetchPageAndOgImage(s.url);
+
+      if (reachable) {
+        return { suggestion: s, url: s.url, imageUrl, valid: true };
+      }
+
+      // Step 2: URL is broken — search for the correct one
+      console.log(`List ${listId}: URL broken for "${s.title}", searching for correct URL...`);
+      const repaired = await findCorrectUrl(
+        s.title,
+        s.brand,
+        s.domain ?? extractDomain(s.url),
+      );
+
+      if (repaired) {
+        console.log(`List ${listId}: repaired URL for "${s.title}" → ${repaired.url}`);
+        return {
+          suggestion: s,
+          url: repaired.url,
+          imageUrl: repaired.imageUrl,
+          valid: true,
+        };
+      }
+
+      // Step 3: Couldn't repair — drop this suggestion
+      console.log(`List ${listId}: could not find valid URL for "${s.title}", dropping.`);
+      return { suggestion: s, url: s.url, imageUrl: null, valid: false };
+    }),
+  );
+
+  const filtered = enriched.filter((v) => v.valid);
+
+  if (filtered.length === 0) {
+    console.log(`List ${listId}: no suggestions with valid URLs after repair.`);
+    return 0;
+  }
+
+  const rows = filtered.map((v) => ({
     list_id: listId,
-    title: s.title,
-    url: s.url,
-    domain: s.domain ?? extractDomain(s.url),
-    image_url: s.image_url ?? null,
-    brand: s.brand ?? null,
-    price_min: s.price_min ?? null,
-    price_max: s.price_max ?? null,
-    currency: s.currency ?? "INR",
-    reason: s.reason,
+    title: v.suggestion.title,
+    url: v.url,
+    domain: extractDomain(v.url) ?? v.suggestion.domain ?? null,
+    image_url: v.imageUrl ?? v.suggestion.image_url ?? null,
+    brand: v.suggestion.brand ?? null,
+    price_min: v.suggestion.price_min ?? null,
+    price_max: v.suggestion.price_max ?? null,
+    currency: v.suggestion.currency ?? "INR",
+    reason: v.suggestion.reason,
     confidence: avgConfidence,
     source_urls: sourceUrls,
     search_queries: searchQueries,

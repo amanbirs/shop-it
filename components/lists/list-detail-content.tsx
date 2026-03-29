@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { useRealtimeProducts } from "@/hooks/use-realtime-products"
 import { retryExtraction, archiveProduct, toggleShortlist } from "@/lib/actions/products"
@@ -47,6 +48,7 @@ export function ListDetailContent({
   isSpecAnalysisStale,
   specStaleDelta,
 }: ListDetailContentProps) {
+  const router = useRouter()
   const [filter, setFilter] = useState<FilterValue>("all")
   const [view, setView] = useState<ViewMode>("grid")
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
@@ -133,7 +135,8 @@ export function ListDetailContent({
     setIsFindingMore(true)
     const result = await requestSuggestions({ listId })
     if (result.success) {
-      toast.success("Searching for products...")
+      toast.success("Found new suggestions")
+      router.refresh()
     } else {
       toast.error(result.error.message)
     }

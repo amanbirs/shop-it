@@ -98,7 +98,7 @@ function PickCard({
           {product.image_url && (
             <div className="relative h-12 w-12 rounded-md overflow-hidden bg-muted shrink-0">
               <Image
-                src={product.image_url}
+                src={product.image_url.replace(/^http:\/\//, "https://")}
                 alt={product.title ?? ""}
                 fill
                 className="object-contain"
