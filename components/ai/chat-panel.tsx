@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect, useTransition } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, Send, Loader2 } from "lucide-react"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { callChatAction } from "@/lib/actions/chat"
@@ -184,15 +186,15 @@ function ChatContent({
 
         {messages.map((msg) => (
           <div key={msg.id} className="space-y-0.5">
-            <p
-              className={
-                msg.role === "user"
-                  ? "text-sm font-medium"
-                  : "text-sm text-muted-foreground"
-              }
-            >
-              {msg.content}
-            </p>
+            {msg.role === "user" ? (
+              <p className="text-sm font-medium">{msg.content}</p>
+            ) : (
+              <div className="text-sm text-muted-foreground prose prose-sm prose-neutral dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:my-2 prose-headings:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-pre:bg-muted prose-pre:text-xs prose-a:text-primary">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {msg.content}
+                </ReactMarkdown>
+              </div>
+            )}
           </div>
         ))}
 
