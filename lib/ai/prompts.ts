@@ -223,7 +223,12 @@ Summary: ${p.ai_summary || "Not available"}`
 
 1. SPEC COMPARISON: Select the 6-12 most important specs that differentiate these products for a buyer in the "${params.category ?? "general"}" category. For each spec:
    - Pick a clear label and a snake_case concept key
-   - Write a one-sentence explanation of why this spec matters to a buyer
+   - Write a specific, opinionated "explanation" that helps a non-expert understand the actual values they're comparing — NOT a generic dictionary definition. For example:
+     BAD: "Refers to the quality and type of materials used, which impacts longevity."
+     GOOD: "Solid wood > engineered wood > MDF for durability. Kiln-dried resists warping."
+     BAD: "The type of display panel technology used in the TV."
+     GOOD: "OLED = perfect blacks, wide angles. QLED = brighter in daylight but weaker contrast."
+     The explanation should rank or compare the possible values when applicable, so a buyer can immediately judge which product has the better spec without being an expert.
    - List which product_id(s) have the best value for this spec in "best_product_ids"
    - Write a one-sentence "best_reason" explaining WHY the best product(s) win on this spec
    - Provide a "product_spec_keys" mapping: for each product, the actual key name in that product's specs object that corresponds to this concept. Products may use different key names for the same concept (e.g., "panel_type" vs "display_technology"). If a product doesn't have this spec, omit it from the map.
