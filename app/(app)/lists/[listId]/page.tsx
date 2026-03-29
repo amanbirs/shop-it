@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { ListHeader } from "@/components/lists/list-header"
 import { ListDetailContent } from "@/components/lists/list-detail-content"
 import { ContextQuestionPopup } from "@/components/ai/context-question-popup"
-import type { Product, ListAiOpinion, ContextQuestion, ProductSuggestion } from "@/lib/types/database"
+import type { Product, ListAiOpinion, ListSpecAnalysis, ContextQuestion, ProductSuggestion } from "@/lib/types/database"
 
 export default async function ListDetailPage({
   params,
@@ -19,7 +19,7 @@ export default async function ListDetailPage({
   if (!user) notFound()
 
   // Parallel fetches for performance
-  const [listResult, membershipResult, membersResult, productsResult, opinionResult, questionsResult, suggestionsResult] =
+  const [listResult, membershipResult, membersResult, productsResult, opinionResult, specAnalysisResult, questionsResult, suggestionsResult] =
     await Promise.all([
       supabase
         .from("lists")
@@ -52,6 +52,11 @@ export default async function ListDetailPage({
         .eq("list_id", listId)
         .single(),
       supabase
+        .from("list_spec_analyses")
+        .select("*")
+        .eq("list_id", listId)
+        .single(),
+      supabase
         .from("context_questions")
         .select("*")
         .eq("list_id", listId)
@@ -75,6 +80,20 @@ export default async function ListDetailPage({
   for (const p of products) {
     if (p.title) productNames[p.id] = p.title
   }
+
+  // Spec analysis staleness detection
+  const specAnalysis = (specAnalysisResult.data as ListSpecAnalysis) ?? null
+  const completedProductIds = products
+    .filter((p) => p.extraction_status === "completed" && !p.archived_at)
+    .map((p) => p.id)
+    .sort()
+  const analysisProductIds = [...(specAnalysis?.product_ids ?? [])].sort()
+  const isSpecAnalysisStale = specAnalysis
+    ? JSON.stringify(completedProductIds) !== JSON.stringify(analysisProductIds)
+    : false
+  const specStaleDelta = specAnalysis
+    ? Math.abs(completedProductIds.length - (specAnalysis.product_count ?? 0))
+    : 0
 
   // Build members list for header
   const members = (membersResult.data ?? []).map((m: Record<string, unknown>) => ({
@@ -100,12 +119,16 @@ export default async function ListDetailPage({
       <div className="flex-1 min-h-0 px-6">
         <ListDetailContent
           listId={listId}
+          list={list}
           products={products}
           suggestions={(suggestionsResult.data as ProductSuggestion[]) ?? []}
           userRole={membership.role}
           currentUserId={user.id}
           opinion={(opinionResult.data as ListAiOpinion) ?? null}
           productNames={productNames}
+          specAnalysis={specAnalysis}
+          isSpecAnalysisStale={isSpecAnalysisStale}
+          specStaleDelta={specStaleDelta}
         />
       </div>
 

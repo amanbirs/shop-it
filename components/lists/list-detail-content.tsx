@@ -16,28 +16,39 @@ import { EmptyState } from "@/components/common/empty-state"
 import { Sparkles } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import type { Product, ListAiOpinion, ProductSuggestion } from "@/lib/types/database"
+import { ViewToggle, type ViewMode } from "@/components/lists/view-toggle"
+import { SpecExplainerView } from "@/components/specs/spec-explainer-view"
+import type { Product, List, ListAiOpinion, ListSpecAnalysis, ProductSuggestion } from "@/lib/types/database"
 
 type ListDetailContentProps = {
   listId: string
+  list: Pick<List, "category">
   products: Product[]
   suggestions: ProductSuggestion[]
   userRole: string
   currentUserId: string
   opinion: ListAiOpinion | null
   productNames: Record<string, string>
+  specAnalysis: ListSpecAnalysis | null
+  isSpecAnalysisStale: boolean
+  specStaleDelta: number
 }
 
 export function ListDetailContent({
   listId,
+  list,
   products,
   suggestions,
   userRole,
   currentUserId,
   opinion,
   productNames,
+  specAnalysis,
+  isSpecAnalysisStale,
+  specStaleDelta,
 }: ListDetailContentProps) {
   const [filter, setFilter] = useState<FilterValue>("all")
+  const [view, setView] = useState<ViewMode>("grid")
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
   const [isFindingMore, setIsFindingMore] = useState(false)
@@ -155,36 +166,53 @@ export function ListDetailContent({
           {/* Add product form */}
           {canEdit && <AddProductForm listId={listId} />}
 
-          {/* Filters */}
+          {/* Filters + View toggle */}
           {products.length > 0 && (
-            <ListFilters active={filter} onChange={setFilter} counts={counts} />
+            <div className="flex items-center justify-between gap-4">
+              <ListFilters active={filter} onChange={setFilter} counts={counts} />
+              <ViewToggle value={view} onChange={setView} />
+            </div>
           )}
 
-          {/* Product grid or empty state */}
-          {filtered.length > 0 ? (
-            <ProductGrid
-              products={filtered}
-              onProductClick={setSelectedProduct}
-              onRetryExtraction={handleRetry}
-              onArchive={handleArchive}
-              onToggleShortlist={handleToggleShortlist}
-              canEdit={canEdit}
-              compact={!!currentProduct}
-            />
-          ) : products.length === 0 ? (
-            <EmptyState
-              title="No products yet"
-              description={
-                canEdit
-                  ? "Paste a product URL above to get started."
-                  : "The list owner hasn't added any products yet."
-              }
+          {/* Specs view */}
+          {view === "specs" ? (
+            <SpecExplainerView
+              specAnalysis={specAnalysis}
+              products={products}
+              listId={listId}
+              category={list.category}
+              isStale={isSpecAnalysisStale}
+              staleDelta={specStaleDelta}
             />
           ) : (
-            <EmptyState
-              title={`No ${filter} products`}
-              description="Try a different filter."
-            />
+            <>
+              {/* Product grid or empty state */}
+              {filtered.length > 0 ? (
+                <ProductGrid
+                  products={filtered}
+                  onProductClick={setSelectedProduct}
+                  onRetryExtraction={handleRetry}
+                  onArchive={handleArchive}
+                  onToggleShortlist={handleToggleShortlist}
+                  canEdit={canEdit}
+                  compact={!!currentProduct}
+                />
+              ) : products.length === 0 ? (
+                <EmptyState
+                  title="No products yet"
+                  description={
+                    canEdit
+                      ? "Paste a product URL above to get started."
+                      : "The list owner hasn't added any products yet."
+                  }
+                />
+              ) : (
+                <EmptyState
+                  title={`No ${filter} products`}
+                  description="Try a different filter."
+                />
+              )}
+            </>
           )}
 
           {/* AI Suggestions section */}

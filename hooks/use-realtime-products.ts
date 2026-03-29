@@ -74,9 +74,27 @@ export function useRealtimeProducts(listId: string) {
       )
       .subscribe()
 
+    // Subscribe to spec analysis changes (regeneration by collaborators)
+    const specAnalysisChannel = supabase
+      .channel(`list-specs-${listId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "list_spec_analyses",
+          filter: `list_id=eq.${listId}`,
+        },
+        () => {
+          router.refresh()
+        }
+      )
+      .subscribe()
+
     return () => {
       supabase.removeChannel(productsChannel)
       supabase.removeChannel(suggestionsChannel)
+      supabase.removeChannel(specAnalysisChannel)
     }
   }, [listId, supabase, handleChange, router])
 }

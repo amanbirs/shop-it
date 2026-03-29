@@ -111,6 +111,17 @@ export function buildExpertOpinionPrompt(params: {
   category: string | null
   priorities: string[]
   userContext: Record<string, unknown>
+  specAnalysis?: {
+    dimensions: Array<{
+      name: string
+      description: string
+      ratings: Array<{
+        product_id: string
+        score: number
+        reasoning: string
+      }>
+    }>
+  } | null
 }): string {
   const productData = params.products
     .map(
@@ -127,6 +138,25 @@ Summary: ${p.ai_summary || "Not available"}`
     )
     .join("\n---\n")
 
+  // Build optional dimensions section from spec analysis
+  const productTitles: Record<string, string> = {}
+  for (const p of params.products) {
+    productTitles[p.id] = p.title ?? "Unknown"
+  }
+
+  const dimensionsSection = params.specAnalysis?.dimensions?.length
+    ? `\n## Pre-computed Dimension Ratings
+The following quality dimensions have already been evaluated for this product set.
+Use these as a foundation — you may adjust if you disagree, but explain why.
+
+${params.specAnalysis.dimensions
+  .map(
+    (d) =>
+      `${d.name}: ${d.ratings.map((r) => `${productTitles[r.product_id] ?? r.product_id} = ${r.score}/5 (${r.reasoning})`).join(", ")}`
+  )
+  .join("\n")}\n`
+    : ""
+
   return `You are a purchase advisor. Analyze these products and provide expert recommendations.
 
 ${params.category ? `Category: ${params.category}` : ""}
@@ -134,7 +164,7 @@ ${params.budgetMin ? `Budget: ${params.budgetMin}-${params.budgetMax} ${params.p
 ${params.purchaseBy ? `Purchase deadline: ${params.purchaseBy}` : ""}
 ${params.priorities.length ? `User priorities (in order of importance): ${params.priorities.join(", ")}` : ""}
 ${Object.keys(params.userContext).length ? `User context: ${JSON.stringify(params.userContext)}` : ""}
-
+${dimensionsSection}
 Products:
 ${productData}
 
@@ -148,6 +178,99 @@ Return JSON:
   "comparison": "Detailed prose comparing the products",
   "concerns": "Red flags or things to watch out for",
   "verdict": "Final recommendation paragraph"
+}`
+}
+
+export function buildSpecAnalysisPrompt(params: {
+  products: Array<{
+    id: string
+    title: string | null
+    brand: string | null
+    price_min: number | null
+    price_max: number | null
+    currency: string
+    specs: Record<string, string>
+    pros: string[]
+    cons: string[]
+    rating: number | null
+    review_count: number | null
+    ai_summary: string | null
+  }>
+  budgetMin: number | null
+  budgetMax: number | null
+  purchaseBy: string | null
+  category: string | null
+  priorities: string[]
+  userContext: Record<string, unknown>
+  existingDimensions?: Array<{ name: string; description: string }> | null
+}): string {
+  const productData = params.products
+    .map(
+      (p) => `
+Product ID: ${p.id}
+Title: ${p.title || "Unknown"}
+Brand: ${p.brand || "Unknown"}
+Price: ${p.price_min ?? "N/A"} ${p.currency}
+Rating: ${p.rating ?? "N/A"}/5 (${p.review_count ?? 0} reviews)
+Specs: ${JSON.stringify(p.specs)}
+Pros: ${p.pros.join(", ") || "None listed"}
+Cons: ${p.cons.join(", ") || "None listed"}
+Summary: ${p.ai_summary || "Not available"}`
+    )
+    .join("\n---\n")
+
+  return `You are analyzing products for a purchase comparison. Your job is to:
+
+1. SPEC COMPARISON: Select the 6-12 most important specs that differentiate these products for a buyer in the "${params.category ?? "general"}" category. For each spec:
+   - Pick a clear label and a snake_case concept key
+   - Write a one-sentence explanation of why this spec matters to a buyer
+   - List which product_id(s) have the best value for this spec in "best_product_ids"
+   - Write a one-sentence "best_reason" explaining WHY the best product(s) win on this spec
+   - Provide a "product_spec_keys" mapping: for each product, the actual key name in that product's specs object that corresponds to this concept. Products may use different key names for the same concept (e.g., "panel_type" vs "display_technology"). If a product doesn't have this spec, omit it from the map.
+
+2. QUALITY DIMENSIONS: Generate 4-7 evaluation dimensions appropriate for "${params.category ?? "general"}" products. These should cover different angles a buyer cares about (e.g., for speakers: sound quality, build quality, connectivity, value for money, design/aesthetics; for TVs: picture quality, gaming performance, smart features, build quality, value for money). For each dimension:
+   - Name and briefly describe what it measures
+   - IMPORTANT: You MUST rate EVERY product for EVERY dimension. The "ratings" array must contain exactly ${params.products.length} entries — one for each product. Do NOT skip any product in any dimension.
+   - Rate each product 1-5 with a one-sentence justification
+   - You may use general product knowledge beyond the provided data (e.g., brand reliability, known issues) — if you do, mark "uses_external_knowledge": true
+
+${params.priorities.length ? `User priorities (weight these higher): ${params.priorities.join(", ")}` : ""}
+${params.budgetMin ? `Budget: ${params.budgetMin}-${params.budgetMax} ${params.products[0]?.currency || "INR"}` : ""}
+${params.purchaseBy ? `Purchase deadline: ${params.purchaseBy}` : ""}
+${Object.keys(params.userContext).length ? `User context: ${JSON.stringify(params.userContext)}` : ""}
+
+Products:
+${productData}
+
+Respond in JSON matching this exact schema:
+{
+  "spec_comparison": [
+    {
+      "key": "snake_case_concept_name",
+      "label": "Human Readable Name",
+      "explanation": "One sentence explaining why this matters to a buyer",
+      "best_product_ids": ["product-uuid-1"],
+      "best_reason": "One sentence explaining why this product wins on this spec",
+      "product_spec_keys": {
+        "product-uuid-1": "actual_key_in_their_specs",
+        "product-uuid-2": "possibly_different_key_name"
+      }
+    }
+  ],
+  "dimensions": [
+    {
+      "name": "Dimension Name",
+      "description": "What this dimension measures",
+      "ratings": [
+        {
+          "product_id": "uuid",
+          "score": 1-5,
+          "reasoning": "One sentence justification",
+          "uses_external_knowledge": true
+        }
+      ]
+    }
+  ]
 }`
 }
 

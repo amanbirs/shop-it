@@ -114,6 +114,42 @@ export type ListAiOpinion = {
   updated_at: string
 }
 
+// Spec Explainer types (metadata only — values read from product.specs at render time)
+export type SpecComparisonRow = {
+  key: string
+  label: string
+  explanation: string
+  best_product_ids: string[]
+  best_reason: string
+  product_spec_keys: Record<string, string>
+}
+
+export type DimensionRating = {
+  product_id: string
+  score: number
+  reasoning: string
+  uses_external_knowledge: boolean
+}
+
+export type Dimension = {
+  name: string
+  description: string
+  ratings: DimensionRating[]
+}
+
+export type ListSpecAnalysis = {
+  id: string
+  list_id: string
+  spec_comparison: SpecComparisonRow[]
+  dimensions: Dimension[]
+  product_count: number | null
+  product_ids: string[]
+  generated_at: string
+  model_version: string | null
+  created_at: string
+  updated_at: string
+}
+
 export type InviteToken = {
   id: string
   token: string

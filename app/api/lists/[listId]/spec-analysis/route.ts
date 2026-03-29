@@ -2,11 +2,9 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { callGemini } from "@/lib/ai/gemini"
-import { buildExpertOpinionPrompt } from "@/lib/ai/prompts"
+import { buildSpecAnalysisPrompt } from "@/lib/ai/prompts"
+import { specAnalysisResponseSchema } from "@/lib/validators/spec-analysis"
 import { revalidatePath } from "next/cache"
-import { triggerSuggestions } from "@/lib/actions/suggestions"
-
-// See docs/system-guide/07-api-contracts.md § POST /api/lists/[listId]/expert-opinion
 
 export async function POST(
   _request: Request,
@@ -27,7 +25,7 @@ export async function POST(
       )
     }
 
-    // Verify membership
+    // Verify membership (editor or owner)
     const { data: membership } = await supabase
       .from("list_members")
       .select("role")
@@ -35,10 +33,10 @@ export async function POST(
       .eq("user_id", user.id)
       .single()
 
-    if (!membership) {
+    if (!membership || membership.role === "viewer") {
       return NextResponse.json(
-        { success: false, error: { code: "NOT_FOUND", message: "List not found" } },
-        { status: 404 }
+        { success: false, error: { code: "FORBIDDEN", message: "Editors and owners only" } },
+        { status: 403 }
       )
     }
 
@@ -76,15 +74,8 @@ export async function POST(
       .eq("id", user.id)
       .single()
 
-    // Fetch spec analysis (if available) to enrich expert opinion
-    const { data: specAnalysis } = await supabase
-      .from("list_spec_analyses")
-      .select("dimensions")
-      .eq("list_id", listId)
-      .single()
-
     // Build prompt and call Gemini
-    const prompt = buildExpertOpinionPrompt({
+    const prompt = buildSpecAnalysisPrompt({
       products: products.map((p) => ({
         id: p.id,
         title: p.title,
@@ -105,28 +96,25 @@ export async function POST(
       category: list?.category ?? null,
       priorities: (list?.priorities as string[]) ?? [],
       userContext: (profile?.context as Record<string, unknown>) ?? {},
-      specAnalysis: specAnalysis ?? null,
     })
 
     const response = await callGemini(prompt, { jsonMode: true, maxTokens: 8192 })
-    const opinion = JSON.parse(response)
+    const parsed = JSON.parse(response)
+
+    // Validate AI response shape
+    const validated = specAnalysisResponseSchema.parse(parsed)
 
     // Upsert using admin client (bypasses RLS)
     const admin = createAdminClient()
     const { data: upserted, error: upsertError } = await admin
-      .from("list_ai_opinions")
+      .from("list_spec_analyses")
       .upsert(
         {
           list_id: listId,
-          top_pick: opinion.top_pick || null,
-          top_pick_reason: opinion.top_pick_reason || null,
-          value_pick: opinion.value_pick || null,
-          value_pick_reason: opinion.value_pick_reason || null,
-          summary: opinion.summary || null,
-          comparison: opinion.comparison || null,
-          concerns: opinion.concerns || null,
-          verdict: opinion.verdict || null,
+          spec_comparison: validated.spec_comparison,
+          dimensions: validated.dimensions,
           product_count: products.length,
+          product_ids: products.map((p) => p.id),
           generated_at: new Date().toISOString(),
           model_version: "gemini-3.1-flash-lite-preview",
         },
@@ -139,14 +127,11 @@ export async function POST(
 
     revalidatePath(`/lists/${listId}`)
 
-    // Non-blocking: trigger smart suggestions after expert opinion generated
-    triggerSuggestions(listId, "expert_opinion").catch(() => {})
-
     return NextResponse.json({ success: true, data: upserted })
   } catch (err) {
-    console.error("[expert-opinion] Failed:", err)
+    console.error("[spec-analysis] Failed:", err)
     return NextResponse.json(
-      { success: false, error: { code: "AI_ERROR", message: "Failed to generate expert opinion" } },
+      { success: false, error: { code: "AI_ERROR", message: "Failed to generate spec analysis" } },
       { status: 500 }
     )
   }
