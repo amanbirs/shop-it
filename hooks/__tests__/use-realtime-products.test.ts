@@ -112,6 +112,6 @@ describe("useRealtimeProducts", () => {
 
     unmount()
 
-    expect(mockRemoveChannel).toHaveBeenCalledTimes(2)
+    expect(mockRemoveChannel).toHaveBeenCalledTimes(3)
   })
 })

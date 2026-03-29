@@ -96,10 +96,10 @@ describe("SuggestionCard", () => {
     expect(addBtn).toBeDisabled()
   })
 
-  it("shows No image placeholder when image_url is null", () => {
+  it("shows domain placeholder when image_url is null", () => {
     render(
       <SuggestionCard suggestion={baseSuggestion} onAccept={vi.fn()} onDismiss={vi.fn()} />
     )
-    expect(screen.getAllByText("No image")[0]).toBeInTheDocument()
+    expect(screen.getByText(/View on/)).toBeInTheDocument()
   })
 })

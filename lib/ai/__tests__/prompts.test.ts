@@ -4,6 +4,7 @@ import {
   buildHypeTitlePrompt,
   buildAiCommentPrompt,
   buildExpertOpinionPrompt,
+  buildSpecAnalysisPrompt,
   buildContextQuestionsPrompt,
   buildSmartSuggestionsPrompt,
 } from "../prompts"
@@ -294,5 +295,98 @@ describe("buildSmartSuggestionsPrompt", () => {
     expect(prompt).toContain('"title"')
     expect(prompt).toContain('"url"')
     expect(prompt).toContain('"reason"')
+  })
+})
+
+describe("buildSpecAnalysisPrompt", () => {
+  const baseParams = {
+    products: [
+      {
+        id: "550e8400-e29b-41d4-a716-446655440000",
+        title: "Sony A80L",
+        brand: "Sony",
+        price_min: 89990,
+        price_max: null,
+        currency: "INR",
+        specs: { panel_type: "OLED", refresh_rate: "120Hz" },
+        pros: ["Great picture"],
+        cons: ["Expensive"],
+        rating: 4.5,
+        review_count: 2100,
+        ai_summary: "Premium OLED TV",
+      },
+      {
+        id: "660e8400-e29b-41d4-a716-446655440001",
+        title: "Samsung S90C",
+        brand: "Samsung",
+        price_min: 74990,
+        price_max: null,
+        currency: "INR",
+        specs: { display_technology: "QLED", refresh_rate: "120Hz" },
+        pros: ["Bright display"],
+        cons: ["No Dolby Vision"],
+        rating: 4.3,
+        review_count: 1800,
+        ai_summary: "Best value QLED",
+      },
+    ],
+    budgetMin: 30000,
+    budgetMax: 100000,
+    purchaseBy: null,
+    category: "TVs",
+    priorities: ["picture quality", "gaming"],
+    userContext: {},
+  }
+
+  it("includes all product IDs", () => {
+    const prompt = buildSpecAnalysisPrompt(baseParams)
+    expect(prompt).toContain("550e8400-e29b-41d4-a716-446655440000")
+    expect(prompt).toContain("660e8400-e29b-41d4-a716-446655440001")
+  })
+
+  it("includes product specs as JSON", () => {
+    const prompt = buildSpecAnalysisPrompt(baseParams)
+    expect(prompt).toContain("panel_type")
+    expect(prompt).toContain("OLED")
+  })
+
+  it("includes category in the prompt", () => {
+    const prompt = buildSpecAnalysisPrompt(baseParams)
+    expect(prompt).toContain("TVs")
+  })
+
+  it("includes user priorities", () => {
+    const prompt = buildSpecAnalysisPrompt(baseParams)
+    expect(prompt).toContain("picture quality")
+    expect(prompt).toContain("gaming")
+  })
+
+  it("includes budget range", () => {
+    const prompt = buildSpecAnalysisPrompt(baseParams)
+    expect(prompt).toContain("30000")
+    expect(prompt).toContain("100000")
+  })
+
+  it("requires product_spec_keys in the JSON schema", () => {
+    const prompt = buildSpecAnalysisPrompt(baseParams)
+    expect(prompt).toContain("product_spec_keys")
+  })
+
+  it("requires best_reason in the JSON schema", () => {
+    const prompt = buildSpecAnalysisPrompt(baseParams)
+    expect(prompt).toContain("best_reason")
+  })
+
+  it("instructs to rate EVERY product in EVERY dimension", () => {
+    const prompt = buildSpecAnalysisPrompt(baseParams)
+    expect(prompt).toContain("MUST rate EVERY product")
+    expect(prompt).toContain(`exactly ${baseParams.products.length} entries`)
+  })
+
+  it("instructs specific opinionated explanations, not generic", () => {
+    const prompt = buildSpecAnalysisPrompt(baseParams)
+    expect(prompt).toContain("BAD:")
+    expect(prompt).toContain("GOOD:")
+    expect(prompt).toContain("rank or compare")
   })
 })
