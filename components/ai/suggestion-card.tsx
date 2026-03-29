@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { Sparkles, Plus, X, Info } from "lucide-react"
+import { Sparkles, Plus, X, Info, ExternalLink } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -32,23 +32,42 @@ export function SuggestionCard({
       )}
     >
       <CardContent className="p-3 space-y-2">
-        {/* Image */}
+        {/* Image — links to product page */}
         <div className="relative">
-          {suggestion.image_url ? (
-            <div className="relative h-40 w-full rounded-md overflow-hidden bg-muted">
-              <Image
-                src={suggestion.image_url}
-                alt={suggestion.title}
-                fill
-                className="object-contain dark:brightness-90"
-                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              />
-            </div>
-          ) : (
-            <div className="h-40 w-full rounded-md bg-muted flex items-center justify-center text-muted-foreground text-sm">
-              No image
-            </div>
-          )}
+          <a
+            href={suggestion.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="block"
+          >
+            {suggestion.image_url ? (
+              <div className="relative h-40 w-full rounded-md overflow-hidden bg-muted">
+                <Image
+                  src={suggestion.image_url}
+                  alt={suggestion.title}
+                  fill
+                  className="object-contain dark:brightness-90"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                />
+              </div>
+            ) : (
+              <div className="h-40 w-full rounded-md bg-muted flex flex-col items-center justify-center gap-2">
+                {suggestion.domain && (
+                  <Image
+                    src={`https://www.google.com/s2/favicons?domain=${suggestion.domain}&sz=32`}
+                    alt={suggestion.domain}
+                    width={32}
+                    height={32}
+                    className="opacity-50"
+                  />
+                )}
+                <span className="text-xs text-muted-foreground">
+                  View on {suggestion.domain ?? "product page"}
+                </span>
+              </div>
+            )}
+          </a>
 
           {/* AI badge — top-left */}
           <Badge
@@ -71,9 +90,17 @@ export function SuggestionCard({
           </button>
         </div>
 
-        {/* Title */}
+        {/* Title — links to product page */}
         <h3 className="font-medium text-sm leading-snug line-clamp-2">
-          {suggestion.title}
+          <a
+            href={suggestion.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {suggestion.title}
+          </a>
         </h3>
 
         {/* Price */}
@@ -84,21 +111,20 @@ export function SuggestionCard({
           className="text-sm"
         />
 
-        {/* Domain + info */}
+        {/* Domain + view link */}
         <div className="flex items-center justify-between">
           <DomainBadge domain={suggestion.domain} />
 
-          {suggestion.source_urls.length > 0 && (
-            <a
-              href={suggestion.source_urls[0]}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
-              title={`Source: ${suggestion.source_urls[0]}`}
-            >
-              <Info className="h-3.5 w-3.5" />
-            </a>
-          )}
+          <a
+            href={suggestion.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            View product
+            <ExternalLink className="h-3 w-3" />
+          </a>
         </div>
 
         {/* Reason text */}

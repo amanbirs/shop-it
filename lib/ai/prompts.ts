@@ -395,6 +395,7 @@ Instructions:
 - Focus on products that fill GAPS: different price points, different brands, features the current options lack
 - If the user has shortlisted products, find alternatives in a similar class
 - Each suggestion must be a REAL, currently available product with a valid purchase URL
+- For "image_url": provide a direct URL to the product's main image (not a thumbnail). If you cannot find a reliable image URL, use null — do NOT fabricate image URLs
 - Weight suggestions toward the user's priorities and budget
 - Each "reason" must specifically reference the user's priorities, budget, or shortlisted items
 - If the list is already comprehensive (good coverage of options), return 0 suggestions
