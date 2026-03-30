@@ -40,22 +40,26 @@ export function ChatPanel({ open, onClose, listId, prefill }: ChatPanelProps) {
 
   // Load persisted messages when panel opens
   useEffect(() => {
-    if (open && !hasLoadedRef.current) {
-      hasLoadedRef.current = true
-      setIsLoading(true)
-      loadChatMessages(listId).then((result) => {
-        if (result.success && result.data.messages.length > 0) {
-          setMessages(
-            result.data.messages.map((m) => ({
-              id: m.id,
-              role: m.role,
-              content: m.content,
-            }))
-          )
-        }
-        setIsLoading(false)
-      })
-    }
+    if (!open || hasLoadedRef.current) return
+    hasLoadedRef.current = true
+
+    let cancelled = false
+    // Set loading via microtask to avoid synchronous setState in effect
+    queueMicrotask(() => { if (!cancelled) setIsLoading(true) })
+    loadChatMessages(listId).then((result) => {
+      if (cancelled) return
+      if (result.success && result.data.messages.length > 0) {
+        setMessages(
+          result.data.messages.map((m) => ({
+            id: m.id,
+            role: m.role,
+            content: m.content,
+          }))
+        )
+      }
+      setIsLoading(false)
+    })
+    return () => { cancelled = true }
   }, [open, listId])
 
   // Auto-scroll to bottom on new messages
@@ -66,13 +70,15 @@ export function ChatPanel({ open, onClose, listId, prefill }: ChatPanelProps) {
   }, [messages])
 
   // Focus input when opened + apply prefill
+  const lastPrefillRef = useRef<string | undefined>(undefined)
   useEffect(() => {
-    if (open) {
-      if (prefill) {
-        setInput(prefill)
-      }
-      setTimeout(() => inputRef.current?.focus(), 100)
+    if (!open) return
+    if (prefill && prefill !== lastPrefillRef.current) {
+      lastPrefillRef.current = prefill
+      // Schedule after current render to avoid synchronous setState in effect
+      queueMicrotask(() => setInput(prefill))
     }
+    setTimeout(() => inputRef.current?.focus(), 100)
   }, [open, prefill])
 
   const handleClose = useCallback(() => {
