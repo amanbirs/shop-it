@@ -31,7 +31,7 @@ vi.mock("@/lib/supabase/client", () => ({
   })),
 }))
 
-const mockGenerateContextQuestions = vi.fn((_listId: string, _productId: string) => Promise.resolve())
+const mockGenerateContextQuestions = vi.fn<(listId: string, productId: string) => Promise<void>>(() => Promise.resolve())
 vi.mock("@/lib/actions/context-questions", () => ({
   generateContextQuestions: (listId: string, productId: string) =>
     mockGenerateContextQuestions(listId, productId),

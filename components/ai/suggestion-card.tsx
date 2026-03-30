@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { Sparkles, Plus, X, Info, ExternalLink } from "lucide-react"
+import { Sparkles, Plus, X, ExternalLink } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"

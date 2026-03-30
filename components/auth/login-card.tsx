@@ -72,6 +72,7 @@ export function LoginCard() {
     })
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- kept for future sign-up flow
   const handleSignUp = () => {
     setError(null)
     startTransition(async () => {

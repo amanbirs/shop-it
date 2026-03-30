@@ -24,7 +24,7 @@ beforeEach(() => {
 // Helper: shadcn/base-ui Input renders an outer wrapper + inner input.
 // Get the actual <input type="url"> element for typing.
 function getInput() {
-  const inputs = screen.getAllByPlaceholderText(/paste a product url/i)
+  const inputs = screen.getAllByPlaceholderText(/paste a url/i)
   // Return the one with the actual input tag (not wrapper)
   return inputs.find((el) => el.tagName === "INPUT") ?? inputs[0]
 }

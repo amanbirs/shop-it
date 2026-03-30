@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { TEST_USER, TEST_LIST, TEST_MEMBER_OWNER } from "@/__tests__/helpers/fixtures"
+import { TEST_USER, TEST_LIST } from "@/__tests__/helpers/fixtures"
 
 // --- Mocks ---
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))

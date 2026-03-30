@@ -20,7 +20,7 @@ type CreateListDialogProps = {
 
 export function CreateListDialog({ open, onOpenChange }: CreateListDialogProps) {
   const router = useRouter()
-  const [isPending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
 
   // Form state
   const [category, setCategory] = useState("")

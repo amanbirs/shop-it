@@ -43,12 +43,14 @@ describe("specComparisonRowSchema", () => {
   })
 
   it("rejects missing explanation", () => {
-    const { explanation: _, ...withoutExplanation } = validRow
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { explanation, ...withoutExplanation } = validRow
     expect(specComparisonRowSchema.safeParse(withoutExplanation).success).toBe(false)
   })
 
   it("rejects missing best_reason", () => {
-    const { best_reason: _, ...withoutBestReason } = validRow
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { best_reason, ...withoutBestReason } = validRow
     expect(specComparisonRowSchema.safeParse(withoutBestReason).success).toBe(false)
   })
 })

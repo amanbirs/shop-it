@@ -14,6 +14,7 @@ type ExpertOpinionCardProps = {
 
 export function ExpertOpinionCard({
   opinion,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- prop kept for API compatibility
   productNames,
   products,
 }: ExpertOpinionCardProps) {

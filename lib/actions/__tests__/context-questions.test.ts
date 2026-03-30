@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { TEST_USER, TEST_LIST, TEST_PRODUCT, TEST_CONTEXT_QUESTION } from "@/__tests__/helpers/fixtures"
+import { TEST_USER, TEST_LIST, TEST_CONTEXT_QUESTION } from "@/__tests__/helpers/fixtures"
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("@/lib/actions/suggestions", () => ({ triggerSuggestions: vi.fn(() => Promise.resolve()) }))

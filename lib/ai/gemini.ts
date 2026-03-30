@@ -56,7 +56,7 @@ export async function callGemini(
 
   try {
     return await attemptFetch()
-  } catch (err) {
+  } catch {
     // Retry once after 1s on transient errors
     await new Promise((resolve) => setTimeout(resolve, 1000))
     return await attemptFetch()
