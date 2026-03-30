@@ -13,6 +13,7 @@ When planning a large or expensive purchase, research is scattered across WhatsA
 | Feature | Description |
 |---------|-------------|
 | **URL Ingestion** | Paste a product URL; app scrapes and extracts structured data (title, price, image, specs, reviews summary, pros/cons) |
+| **Product Search** | Search for products by text query; AI recommends specific products, Serper finds real URLs, user adds to list with one click |
 | **Product Table** | Clean table/card view of all products with sortable columns and key stats |
 | **Shortlisting** | Mark items as shortlisted; filter view to shortlisted only |
 | **Collaboration** | Share a purchase list with other users via email invite; all members can add items, comment, vote |
@@ -34,6 +35,7 @@ When planning a large or expensive purchase, research is scattered across WhatsA
 | **Auth** | Supabase Auth | Magic links + Google OAuth, no cost at family scale |
 | **URL Scraping** | Firecrawl | Pay-per-use, returns clean markdown from product URLs |
 | **AI Extraction** | Google Gemini API (`gemini-3.1-flash-lite-preview`) | Parse scraped content into structured product data, very low cost |
+| **Product Search** | Serper.dev (Google Search API) | Find real product page URLs for AI-recommended products; LLMs hallucinate URLs, Serper returns actual Google SERP results |
 | **File Storage** | Supabase Storage | Product images/thumbnails, included in free tier |
 | **Real-time** | Supabase Realtime | Live updates when collaborators add/modify items |
 
@@ -45,6 +47,7 @@ When planning a large or expensive purchase, research is scattered across WhatsA
 | Supabase | $0 (free tier: 500MB DB, 1GB storage, 50K auth users) |
 | Gemini Flash | ~$0.01 per 100 products extracted |
 | URL Scraping | ~$0.10 per 100 URLs (Firecrawl) or $0 (Jina free tier) |
+| Serper.dev | 2,500 free queries, then ~$1 per 1,000 searches |
 | **Total** | **< $1/month for typical family use** |
 
 ---
@@ -82,6 +85,11 @@ When planning a large or expensive purchase, research is scattered across WhatsA
 │ │ Gemini   │ │  │  │(WebSocket│  │ (Images) │            │
 │ │ Flash    │ │  │  │  sync)   │  │          │            │
 │ └──────────┘ │  │  └──────────┘  └──────────┘            │
+│ ┌──────────┐ │  │                                        │
+│ │ Serper   │ │  │                                        │
+│ │ (Google  │ │  │                                        │
+│ │  Search) │ │  │                                        │
+│ └──────────┘ │  │                                        │
 └──────────────┘  └────────────────────────────────────────┘
 ```
 
@@ -156,4 +164,3 @@ User pastes URL
 - Affiliate links
 - Native mobile app (responsive web is sufficient)
 - Multi-language support
-- AI-powered recommendations

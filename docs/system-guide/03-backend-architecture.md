@@ -84,6 +84,9 @@ lib/actions/
   lists.ts          — createList, updateList, archiveList
   products.ts       — addProduct, updateProduct, archiveProduct,
                       toggleShortlist, markPurchased
+  search.ts         — searchProducts, addProductFromSearch
+  suggestions.ts    — requestSuggestions, acceptSuggestion, dismissSuggestion
+  chat.ts           — callChatAction, loadChatMessages, updateChatInsights
   members.ts        — inviteMember, removeMember, updateRole, acceptInvite
   comments.ts       — addComment, updateComment, deleteComment
 ```
@@ -303,6 +306,67 @@ The client compares `list_ai_opinions.product_count` with the current product co
 
 ---
 
+## Product Search Pipeline
+
+User types a text query (not a URL) in the input bar → we recommend products with Gemini → find real URLs with Serper → return results to the client.
+
+```
+User types "best OLED TV under 150k"
+      │
+      ▼
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│  Phase 1:    │────▶│  Phase 2:    │────▶│  Return      │
+│  Gemini      │     │  Serper      │     │  results     │
+│  (recommend) │     │  (find URLs) │     │  to client   │
+│              │     │              │     │              │
+│ Input:       │     │ For each     │     │ Enriched     │
+│ - Query      │     │ product:     │     │ with:        │
+│ - List ctx   │     │ - Google     │     │ - Real URL   │
+│ - Products   │     │   search     │     │ - og:image   │
+│   in list    │     │ - Return     │     │ - Domain     │
+│              │     │   best URL   │     │              │
+│ Output:      │     │              │     │              │
+│ - Names      │     │ Prefers      │     │              │
+│ - Brands     │     │ retailers    │     │              │
+│ - Prices     │     │ over review  │     │              │
+│ - Reasons    │     │ sites        │     │              │
+│ (NO URLs)    │     │              │     │              │
+└──────────────┘     └──────────────┘     └──────────────┘
+```
+
+### Why two phases?
+
+LLMs are bad at generating URLs. Even with Google Search grounding, Gemini hallucinates URLs in its text response ~70% of the time. Serper returns actual Google SERP results — real, crawled URLs. Splitting the job gives each tool what it's good at: Gemini for intelligence (what to recommend), Serper for URLs (where to buy it).
+
+### Phase 1: Gemini recommends products
+
+Server Action `searchProducts` in `lib/actions/search.ts`:
+- Uses `callGemini` with `jsonMode: true` (no grounding needed)
+- Prompt includes list context (category, budget, priorities, existing products)
+- Explicitly instructs "do NOT include URLs"
+- Returns product names with exact model numbers, brands, price estimates, reasons
+
+### Phase 2: Serper finds real URLs
+
+For each recommendation, `findProductUrl` in `lib/search/serper.ts`:
+- Constructs a Google search query: `"{brand} {product name} buy India"`
+- Calls Serper.dev API (POST to `google.serper.dev/search`)
+- Scores results: retailers (Amazon, Flipkart, Croma) > brand stores > review sites
+- Returns the best matching URL
+- Then `fetchOgImage` grabs the product image from the page
+
+All Serper calls run in parallel (one per product, ~1-2s each).
+
+### Results are ephemeral
+
+Search results are NOT stored in the database. They're returned directly to the client. Only when the user clicks "Add to list" does a product row get created (via `addProductFromSearch`), which then goes through the normal ingestion pipeline (scrape + extract).
+
+### Enhanced chat discovery
+
+The chat panel (`lib/actions/chat.ts`) detects discovery intent ("find me a good TV for gaming") and switches to a grounding-enabled Gemini call that returns product recommendations alongside the conversational response. Chat discovery uses Gemini with Google Search grounding (not Serper) since it needs to be conversational and the URL quality bar is lower (users can still search via the input bar for better URLs).
+
+---
+
 ## Realtime Subscriptions
 
 Client-side Supabase Realtime for live updates. Two subscriptions:
@@ -367,14 +431,21 @@ lib/
   actions/
     lists.ts                       # List CRUD actions
     products.ts                    # Product CRUD + shortlist/purchase + addProduct (insert)
+    search.ts                      # searchProducts (two-phase: Gemini + Serper), addProductFromSearch
+    suggestions.ts                 # requestSuggestions, acceptSuggestion, dismissSuggestion
+    chat.ts                        # callChatAction (with discovery intent), loadChatMessages, updateChatInsights
     members.ts                     # Member management actions
     comments.ts                    # Comment CRUD actions
   ai/
     expert-opinion.ts              # Expert Opinion prompt + parsing
     prompts.ts                     # Shared prompt templates
+    gemini.ts                      # callGemini, callGeminiWithGrounding helpers
+  search/
+    serper.ts                      # searchWeb, findProductUrl — Serper.dev Google Search client
   validators/
     lists.ts                       # Zod schemas for list inputs
     products.ts                    # Zod schemas for product inputs
+    search.ts                      # Zod schemas for search inputs (searchProducts, addFromSearch)
     members.ts                     # Zod schemas for member inputs
 
 supabase/
@@ -402,6 +473,9 @@ GEMINI_API_KEY=
 # Scraping
 FIRECRAWL_API_KEY=
 
+# Product Search (Serper.dev — Google Search API)
+SERPER_API_KEY=                              # Get from https://serper.dev — 2,500 free queries
+
 # App
 NEXT_PUBLIC_APP_URL=                         # for auth redirects
 ```
@@ -415,6 +489,6 @@ NEXT_PUBLIC_APP_URL=                         # for auth redirects
 - **Cron jobs / scheduled tasks** — no price tracking, no auto-refresh of stale products
 - **Webhooks from external services** — no payment, no notifications beyond Supabase Realtime
 - **File uploads** — no user-uploaded images; `image_url` comes from scraping
-- **Search / full-text** — product list is small enough for client-side filtering
+- **Full-text search within a list** — product list is small enough for client-side filtering (product *discovery* search via Gemini + Serper exists, but searching across your own list items is client-side)
 - **Caching layer** — at family scale, Supabase queries are fast enough without Redis
 - **Queue system** — Supabase Database Webhook + Edge Function is the queue; no need for BullMQ/Redis

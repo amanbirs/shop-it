@@ -151,7 +151,7 @@ When "Full analysis" is clicked, the analysis view expands directly below the ve
 
 ### Layout -- Chat Panel (Desktop)
 
-A floating panel anchored to the bottom-right corner of the viewport, above the page content. Appears when "Ask a question" is clicked from the verdict banner.
+A floating panel anchored to the bottom-right corner of the viewport, above the page content. Appears when "Ask a question" is clicked from the verdict banner, or via "Chat with AI" from the search results panel (with the search query pre-filled).
 
 ```
                                           ┌──────────────────────────────┐
@@ -191,23 +191,25 @@ A floating panel anchored to the bottom-right corner of the viewport, above the 
 
 **Panel anatomy:**
 
-- Dimensions: `w-[360px] h-[480px]` fixed size. Anchored `bottom-6 right-6` (24px from viewport edges).
+- Dimensions: `w-[400px] h-[540px]` fixed size. Anchored `bottom-6 right-6` (24px from viewport edges). Widened from 360px to accommodate inline product cards.
 - Shadow: `shadow-lg` -- the same elevation as a dropdown menu or dialog overlay. This is a floating surface that sits above the page.
 - Border: `border border-border rounded-xl`. Slightly more rounded than standard cards (`rounded-xl` vs `rounded-lg`) to visually distinguish it as a floating panel rather than inline content.
 - Background: `bg-card`. Same as any card surface.
-- Header: "Ask about this list" in `text-sm font-medium`. Close button is `text-muted-foreground hover:text-foreground`, an `X` icon (no text). The header has `border-b border-border px-4 py-3`.
+- Header: "AI Assistant" in `text-sm font-medium`. Close button is `text-muted-foreground hover:text-foreground`, an `X` icon (no text). The header has `border-b border-border px-4 py-3`.
 - Message area: Scrollable `flex-1 overflow-y-auto px-4 py-3` container. Messages flow top to bottom.
-- Input area: Fixed at the bottom. `border-t border-border px-4 py-3`. A single-line text input using the standard `<Input>` component with `placeholder="Ask a question..."`. No send button -- Enter submits. Shift+Enter for newlines (if supporting multi-line, use `<Textarea>` with `rows={1}` auto-grow).
-- Welcome message: When no messages exist, a centered prompt reads "What would you like to know about these products?" in `text-sm text-muted-foreground`. This disappears after the first message.
+- Input area: Fixed at the bottom. `border-t border-border px-4 py-3`. A textarea with `placeholder="Ask a question or search for products..."`. Send button (icon). Enter submits, Shift+Enter for newlines.
+- Welcome message: When no messages exist, a centered prompt reads "Ask about products in your list, or discover new ones." with example queries ("Why is the LG better than the Samsung?", "Find me a good TV for gaming under 1L", "What should I look for in an OLED TV?"). Disappears after first message.
+- **Prefill**: When opened from the search results panel's "Chat with AI" link, the input is pre-filled with the search query so the user can continue refining conversationally.
 
 **Message styling:**
 
 Messages do not use chat bubbles. All text is left-aligned and uses the same typography as body text elsewhere in the app.
 
-- **User messages**: `text-sm text-foreground font-medium` with a right-aligned "user" label in `text-xs text-muted-foreground`. The message text itself is left-aligned (not right-aligned like typical chat). The word "user" could be replaced with the user's first name if available.
-- **Response messages**: `text-sm text-muted-foreground leading-relaxed`. No label, no avatar, no "AI" attribution. The response just appears below the user's message after a brief typing indicator (three dots, `animate-pulse`).
-- **Message spacing**: `space-y-4` between messages. A thin `border-b border-border/50` separates each exchange (user message + response pair), not individual messages.
-- **Typing indicator**: Three small dots in `text-muted-foreground animate-pulse`, same pattern as a loading state. Appears where the next response will render.
+- **User messages**: `text-sm text-foreground font-medium`. Left-aligned.
+- **Response messages**: `text-sm text-muted-foreground` with full markdown rendering (ReactMarkdown + remarkGfm). No label, no avatar, no "AI" attribution.
+- **Inline product cards (discovery mode)**: When the user asks to find products (e.g., "find me a good TV"), the response includes both a text answer and product cards below it. Each card is a compact horizontal `SearchResultCard` (image left, details right) with an "Add" button. Same component used in the search results panel. Cards appear below the markdown text, visually grouped with the response.
+- **Message spacing**: `space-y-4` between messages.
+- **Typing indicator**: Loader icon + "Thinking..." text in `text-sm text-muted-foreground`.
 
 ### Layout -- Chat Panel (Mobile, < 640px)
 

@@ -479,6 +479,121 @@ ActionResult<{
 
 ---
 
+## Server Actions — Search (`lib/actions/search.ts`)
+
+### `searchProducts`
+
+Two-phase product search: Gemini recommends products (no URLs), Serper finds real URLs.
+
+```typescript
+const searchProductsSchema = z.object({
+  listId: z.string().uuid(),
+  query: z.string().min(2).max(500),
+})
+
+// Return
+ActionResult<{
+  results: SearchResult[]
+}>
+
+type SearchResult = {
+  id: string             // client-generated UUID for React keys
+  title: string          // exact product name from Gemini
+  url: string            // real purchase URL from Serper
+  domain: string | null  // extracted from URL (e.g., "amazon.in")
+  image_url: string | null // og:image from the page
+  brand: string | null
+  price_min: number | null
+  price_max: number | null
+  currency: string
+  reason: string         // why this product matches the query
+}
+
+// Auth: editor or owner of the list
+// Pipeline:
+//   1. Gemini (jsonMode, no grounding) → product names, brands, prices, reasons (NO URLs)
+//   2. Serper.dev (per product, in parallel) → real Google SERP URLs
+//   3. fetchOgImage (per URL, in parallel) → product images
+// Results are ephemeral — not stored in DB
+// Latency: 3-8s (Gemini ~1s + Serper ~2s parallel + og:image ~2s parallel)
+```
+
+### `addProductFromSearch`
+
+Add a search result to a list. Creates a product row with pre-filled data, then triggers the normal ingestion pipeline (scrape + extract) for full data.
+
+```typescript
+const addFromSearchSchema = z.object({
+  listId: z.string().uuid(),
+  title: z.string().min(1),
+  url: z.string().url(),
+  domain: z.string().nullable(),
+  image_url: z.string().nullable(),
+  brand: z.string().nullable(),
+  price_min: z.number().nullable(),
+  price_max: z.number().nullable(),
+  currency: z.string().default("INR"),
+})
+
+// Return
+ActionResult<{ id: string }>    // the new product's ID
+
+// Auth: editor or owner
+// Creates product with extraction_status='pending', added_via='ai'
+// Revalidates '/lists/[id]'
+```
+
+---
+
+## Server Actions — Chat (`lib/actions/chat.ts`)
+
+### `callChatAction`
+
+Conversational AI assistant scoped to a list. Detects discovery intent and switches to Google Search grounding when the user asks to find products.
+
+```typescript
+type ChatInput = {
+  listId: string
+  message: string
+  history: Array<{ role: "user" | "assistant"; content: string }>
+}
+
+// Return
+ActionResult<{
+  response: string           // markdown text response
+  products?: SearchResult[]  // inline product recommendations (discovery mode only)
+}>
+
+// Auth: any authenticated user
+// Discovery intent detection: regex patterns for "find me", "suggest", "recommend", etc.
+// Standard mode: callGemini (no grounding) — answers questions about list products
+// Discovery mode: callGeminiWithGrounding — finds products with Google Search, returns product cards
+// Both modes persist messages to chat_messages table
+// Latency: 1-3s (standard) or 3-8s (discovery with grounding)
+```
+
+### `loadChatMessages`
+
+```typescript
+// Input: listId (string)
+// Return: ActionResult<{ messages: ChatMessage[] }>
+// Auth: any authenticated user
+```
+
+### `updateChatInsights`
+
+Extracts key decision signals from the conversation. Called on panel close.
+
+```typescript
+// Input: listId (string)
+// Return: ActionResult<{ insights: string }>
+// Auth: any authenticated user
+// Stores insights in lists.chat_insights column
+// Insights are injected into Expert Opinion and Suggestions prompts
+```
+
+---
+
 ## API Routes
 
 ### `POST /api/lists/[listId]/expert-opinion`
@@ -686,6 +801,24 @@ export const createCommentSchema = z.object({
 export const updateCommentSchema = z.object({
   commentId: z.string().uuid(),
   content: z.string().min(1).max(5000),
+})
+
+// lib/validators/search.ts
+export const searchProductsSchema = z.object({
+  listId: z.string().uuid(),
+  query: z.string().min(2, "Search query is too short").max(500),
+})
+
+export const addFromSearchSchema = z.object({
+  listId: z.string().uuid(),
+  title: z.string().min(1),
+  url: z.string().url(),
+  domain: z.string().nullable(),
+  image_url: z.string().nullable(),
+  brand: z.string().nullable(),
+  price_min: z.number().nullable(),
+  price_max: z.number().nullable(),
+  currency: z.string().default("INR"),
 })
 
 // lib/validators/ai.ts

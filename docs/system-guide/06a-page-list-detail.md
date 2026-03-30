@@ -26,7 +26,7 @@ This page also surfaces **AI-recommended products** — items the AI has found a
 │  │ ───  │  [picture quality] [low input lag] [smart TV]   ← priority chips │
 │  │ Home │                                                                  │
 │  │ list │  ┌──────────────────────────────────────────────────────────┐    │
-│  │ list │  │  🔗  Paste a product URL...                      [Add]  │    │
+│  │ list │  │  🔍  Paste a URL or search for products...    [Search]  │    │
 │  │ list │  └──────────────────────────────────────────────────────────┘    │
 │  │      │                                                                  │
 │  │      │  [All (6)] [Shortlisted (2)] [Purchased (0)]  ← filter tabs     │
@@ -63,6 +63,55 @@ Legend:
   [+Add] = Accept suggestion into the list
   [✕] = Dismiss suggestion
 ```
+
+---
+
+## Smart Input Bar
+
+The input bar (`AddProductForm`) detects whether the user typed a URL or a text query:
+
+| Input | Icon | Button | Behavior |
+|-------|------|--------|----------|
+| URL (`https://...` or `www.`) | 🔗 Link2 | "Add" | Existing flow — `addProduct` creates a product row, triggers ingestion |
+| Text query | 🔍 Search | "Search" | Calls `searchProducts` → opens Search Results Panel below |
+
+The detection is a simple regex (`/^(https?:\/\/|www\.)/i`). Everything that doesn't match is treated as a search query.
+
+---
+
+## Search Results Panel
+
+When the user searches for products, a results panel slides in between the input bar and the filter tabs (pushes the grid down). Animated entry with Framer Motion.
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  🔍 Results for "best OLED TV under 150k"    4 products    [×]   │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  ┌────────┐  Samsung S95D 65"                                    │
+│  │  img   │  ₹1,29,990 · amazon.in                              │
+│  └────────┘  "Best anti-glare OLED, complements your LG C4"     │
+│                                                       [Add]      │
+│  ─────────────────────────────────────────────────────────────   │
+│  ┌────────┐  Sony A95L 65"                                      │
+│  │  img   │  ₹1,49,990 · sony.co.in                             │
+│  └────────┘  "Premium pick with superior color accuracy"         │
+│                                                       [Add]      │
+│  ─────────────────────────────────────────────────────────────   │
+│  ...                                                              │
+│                                                                   │
+│  💬 Need help narrowing down? Chat with AI                       │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Key behaviors:
+
+- **Result cards** are horizontal (image left, details right) — compact, list-like. Different from the grid cards used for list products.
+- **"Add" button** calls `addProductFromSearch` → product row created with pre-filled data → goes through normal extraction pipeline. After adding, the button changes to a green "Added" checkmark.
+- **Close (×)** clears search and returns to normal view.
+- **"Chat with AI"** link at the bottom opens the chat panel with the search query pre-filled, enabling conversational refinement.
+- **Max height** of 480px with overflow scroll — the panel never pushes the grid completely off screen on desktop.
+- **Results are contextualized** — the AI knows what products are already in the list and explains how each result relates (e.g., "Cheaper alternative to the Samsung S95D").
 
 ---
 

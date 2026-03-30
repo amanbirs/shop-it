@@ -9,6 +9,7 @@ import { acceptSuggestion, dismissSuggestion, requestSuggestions } from "@/lib/a
 import { AddProductForm } from "@/components/products/add-product-form"
 import { ProductGrid } from "@/components/products/product-grid"
 import { ProductDetailPanel } from "@/components/products/product-detail-panel"
+import { SearchResultsPanel } from "@/components/products/search-results-panel"
 import { ListFilters, type FilterValue } from "@/components/lists/list-filters"
 import { VerdictBanner } from "@/components/ai/verdict-banner"
 import { ChatPanel } from "@/components/ai/chat-panel"
@@ -19,6 +20,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { ViewToggle, type ViewMode } from "@/components/lists/view-toggle"
 import { SpecExplainerView } from "@/components/specs/spec-explainer-view"
+import { searchProducts, type SearchResult } from "@/lib/actions/search"
 import type { Product, List, ListAiOpinion, ListSpecAnalysis, ProductSuggestion } from "@/lib/types/database"
 
 type ListDetailContentProps = {
@@ -53,7 +55,11 @@ export function ListDetailContent({
   const [view, setView] = useState<ViewMode>("grid")
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
+  const [chatPrefill, setChatPrefill] = useState("")
   const [isFindingMore, setIsFindingMore] = useState(false)
+  const [searchQuery, setSearchQuery] = useState<string | null>(null)
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [isSearching, setIsSearching] = useState(false)
   const [, startTransition] = useTransition()
 
   useRealtimeProducts(listId)
@@ -131,6 +137,37 @@ export function ListDetailContent({
     })
   }
 
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query)
+    setSearchResults([])
+    setIsSearching(true)
+
+    try {
+      const result = await searchProducts({ listId, query })
+      if (result.success) {
+        setSearchResults(result.data.results)
+      } else {
+        toast.error(result.error.message)
+      }
+    } catch {
+      toast.error("Search failed. Please try again.")
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const handleCloseSearch = () => {
+    setSearchQuery(null)
+    setSearchResults([])
+    setIsSearching(false)
+  }
+
+  const handleOpenChatWithPrefill = (prefill: string) => {
+    handleCloseSearch()
+    setChatPrefill(prefill)
+    setChatOpen(true)
+  }
+
   const handleFindMore = async () => {
     setIsFindingMore(true)
     const result = await requestSuggestions({ listId })
@@ -166,8 +203,24 @@ export function ListDetailContent({
             onOpenChat={() => setChatOpen(true)}
           />
 
-          {/* Add product form */}
-          {canEdit && <AddProductForm listId={listId} />}
+          {/* Add product form + search */}
+          {canEdit && (
+            <AddProductForm listId={listId} onSearch={handleSearch} />
+          )}
+
+          {/* Search results panel */}
+          <AnimatePresence>
+            {searchQuery && (
+              <SearchResultsPanel
+                query={searchQuery}
+                results={searchResults}
+                isSearching={isSearching}
+                listId={listId}
+                onClose={handleCloseSearch}
+                onOpenChat={handleOpenChatWithPrefill}
+              />
+            )}
+          </AnimatePresence>
 
           {/* Filters + View toggle */}
           {products.length > 0 && (
@@ -302,8 +355,12 @@ export function ListDetailContent({
       {/* Chat panel */}
       <ChatPanel
         open={chatOpen}
-        onClose={() => setChatOpen(false)}
+        onClose={() => {
+          setChatOpen(false)
+          setChatPrefill("")
+        }}
         listId={listId}
+        prefill={chatPrefill}
       />
     </div>
   )

@@ -5,23 +5,29 @@ import { motion, AnimatePresence } from "framer-motion"
 import { X, Send, Loader2 } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import { toast } from "sonner"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
+import { SearchResultCard } from "@/components/products/search-result-card"
 import { callChatAction, loadChatMessages, updateChatInsights } from "@/lib/actions/chat"
+import { addProductFromSearch } from "@/lib/actions/search"
+import type { SearchResult } from "@/lib/actions/search"
 
 type Message = {
   id: string
   role: "user" | "assistant"
   content: string
+  products?: SearchResult[]
 }
 
 type ChatPanelProps = {
   open: boolean
   onClose: () => void
   listId: string
+  prefill?: string
 }
 
-export function ChatPanel({ open, onClose, listId }: ChatPanelProps) {
+export function ChatPanel({ open, onClose, listId, prefill }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isPending, startTransition] = useTransition()
@@ -59,12 +65,15 @@ export function ChatPanel({ open, onClose, listId }: ChatPanelProps) {
     }
   }, [messages])
 
-  // Focus input when opened
+  // Focus input when opened + apply prefill
   useEffect(() => {
     if (open) {
+      if (prefill) {
+        setInput(prefill)
+      }
       setTimeout(() => inputRef.current?.focus(), 100)
     }
-  }, [open])
+  }, [open, prefill])
 
   const handleClose = useCallback(() => {
     // Extract insights in the background when closing, only if new messages were sent
@@ -103,6 +112,7 @@ export function ChatPanel({ open, onClose, listId }: ChatPanelProps) {
             id: crypto.randomUUID(),
             role: "assistant",
             content: result.data.response,
+            products: result.data.products,
           },
         ])
       } else {
@@ -118,6 +128,28 @@ export function ChatPanel({ open, onClose, listId }: ChatPanelProps) {
     })
   }
 
+  const handleAddProduct = async (product: SearchResult): Promise<boolean> => {
+    const res = await addProductFromSearch({
+      listId,
+      title: product.title,
+      url: product.url,
+      domain: product.domain,
+      image_url: product.image_url,
+      brand: product.brand,
+      price_min: product.price_min,
+      price_max: product.price_max,
+      currency: product.currency,
+    })
+
+    if (res.success) {
+      toast.success("Product added — extracting data...")
+      return true
+    } else {
+      toast.error(res.error.message)
+      return false
+    }
+  }
+
   return (
     <AnimatePresence>
       {open && (
@@ -128,7 +160,7 @@ export function ChatPanel({ open, onClose, listId }: ChatPanelProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.97 }}
             transition={{ duration: 0.2, ease: [0.25, 0.4, 0, 1] as const }}
-            className="fixed bottom-6 right-6 z-50 hidden lg:flex flex-col w-[360px] h-[480px] rounded-xl border bg-card shadow-lg"
+            className="fixed bottom-6 right-6 z-50 hidden lg:flex flex-col w-[400px] h-[540px] rounded-xl border bg-card shadow-lg"
           >
             <ChatContent
               messages={messages}
@@ -138,6 +170,7 @@ export function ChatPanel({ open, onClose, listId }: ChatPanelProps) {
               isLoading={isLoading}
               onSubmit={handleSubmit}
               onClose={handleClose}
+              onAddProduct={handleAddProduct}
               scrollRef={scrollRef}
               inputRef={inputRef}
             />
@@ -159,6 +192,7 @@ export function ChatPanel({ open, onClose, listId }: ChatPanelProps) {
               isLoading={isLoading}
               onSubmit={handleSubmit}
               onClose={handleClose}
+              onAddProduct={handleAddProduct}
               scrollRef={scrollRef}
               inputRef={inputRef}
             />
@@ -177,6 +211,7 @@ function ChatContent({
   isLoading,
   onSubmit,
   onClose,
+  onAddProduct,
   scrollRef,
   inputRef,
 }: {
@@ -187,6 +222,7 @@ function ChatContent({
   isLoading: boolean
   onSubmit: (e: React.FormEvent) => void
   onClose: () => void
+  onAddProduct: (product: SearchResult) => Promise<boolean>
   scrollRef: React.RefObject<HTMLDivElement | null>
   inputRef: React.RefObject<HTMLTextAreaElement | null>
 }) {
@@ -194,7 +230,7 @@ function ChatContent({
     <>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-        <span className="text-sm font-medium">Ask about this list</span>
+        <span className="text-sm font-medium">AI Assistant</span>
         <button
           onClick={onClose}
           className="text-muted-foreground hover:text-foreground transition-colors p-1"
@@ -218,26 +254,41 @@ function ChatContent({
         {!isLoading && messages.length === 0 && (
           <div className="text-center py-8">
             <p className="text-sm text-muted-foreground">
-              Ask anything about the products in this list.
+              Ask about products in your list, or discover new ones.
             </p>
             <div className="mt-3 space-y-1.5">
               <p className="text-xs text-muted-foreground/60">Try:</p>
               <p className="text-xs text-muted-foreground">&ldquo;Why is the LG better than the Samsung?&rdquo;</p>
-              <p className="text-xs text-muted-foreground">&ldquo;What if I increase my budget?&rdquo;</p>
+              <p className="text-xs text-muted-foreground">&ldquo;Find me a good TV for gaming under 1L&rdquo;</p>
+              <p className="text-xs text-muted-foreground">&ldquo;What should I look for in an OLED TV?&rdquo;</p>
             </div>
           </div>
         )}
 
         {messages.map((msg) => (
-          <div key={msg.id} className="space-y-0.5">
+          <div key={msg.id} className="space-y-2">
             {msg.role === "user" ? (
               <p className="text-sm font-medium">{msg.content}</p>
             ) : (
-              <div className="text-sm text-muted-foreground prose prose-sm prose-neutral dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:my-2 prose-headings:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-pre:bg-muted prose-pre:text-xs prose-a:text-primary">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {msg.content}
-                </ReactMarkdown>
-              </div>
+              <>
+                <div className="text-sm text-muted-foreground prose prose-sm prose-neutral dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:my-2 prose-headings:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-pre:bg-muted prose-pre:text-xs prose-a:text-primary">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {msg.content}
+                  </ReactMarkdown>
+                </div>
+                {/* Inline product cards for discovery responses */}
+                {msg.products && msg.products.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    {msg.products.map((product) => (
+                      <SearchResultCard
+                        key={product.id}
+                        result={product}
+                        onAdd={() => onAddProduct(product)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         ))}
@@ -260,7 +311,7 @@ function ChatContent({
             ref={inputRef}
             value={input}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
-            placeholder="Ask a question..."
+            placeholder="Ask a question or search for products..."
             className="text-sm min-h-[36px] max-h-[80px] resize-none"
             rows={1}
             disabled={isPending}
